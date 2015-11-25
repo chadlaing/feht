@@ -1,7 +1,7 @@
 -- | Convert between @ByteString@ and @Vector.Storable@
 -- without copying.
 --http://hackage.haskell.org/package/spool-0.1/docs/src/Data-Vector-Storable-ByteString.html
-module Bio.StorableByteString
+module StorableByteString
     ( -- | See also the caveats mentioned in the package's
       -- top-level documentation.
       byteStringToVector

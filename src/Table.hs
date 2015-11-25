@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module Hstats.Table where
+module Table where
 
 import           Data.Bool
 import qualified Data.ByteString.Lazy.Char8 as BS
@@ -66,8 +66,7 @@ fromMetadata x = case x of
   Source _-> unSource x
   Country _-> unCountry x
   Province _-> unProvince x
-  ColumnNumber _ ->
-
+  ColumnNumber _ -> error("Column number not expected")
 
 defaultTable :: Table
 defaultTable = Table

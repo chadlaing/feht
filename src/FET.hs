@@ -1,4 +1,4 @@
-module Hstats.FET where
+module FET where
 
 import qualified Data.ByteString.Lazy.Char8             as BS
 import           Data.Eq

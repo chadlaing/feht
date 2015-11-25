@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Hstats.Comparison where
+module Comparison where
 
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Char
@@ -14,8 +14,8 @@ import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Hstats.FET
-import           Hstats.Table
+import           FET
+import           Table
 import           Prelude                    (fromIntegral, length, (++), (-),
                                              (/))
 import           Text.Show
