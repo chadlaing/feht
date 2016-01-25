@@ -49,7 +49,7 @@ userInput =  cmdArgsMode UserInput
 main :: IO ()
 main = do
     userArgs <- cmdArgsRun userInput
-    --print userArgs
+    print userArgs
 
     --the input of metadata is space separated
     --we need to convert them into "Serotype, Location, Source" etc.  for use in the program
@@ -88,13 +88,14 @@ main = do
     --all but the header information is used for generating the
     --map of geneName --> dataVector
     let geneVectorMap = getGeneVectorMap delim genomeData
-
+    -- print geneVectorMap
     -- let serotypeTable = countByMetadata serotype filteredInfoTable
     -- let summaryTable = summaryMetadataTable serotypeTable
     -- mapM_ putStrLn summaryTable
 
     let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
-
+    print groupComps
+--
     --filter the results by pvalue
     --simple Bonferroni correction
     let filteredGroupComps = filterComparisonsByPValue groupComps
