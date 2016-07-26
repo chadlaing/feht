@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
-import           Prelude                    ()
+import           Prelude                    (error)
 import           Comparison
 import           Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BS
@@ -45,7 +45,7 @@ userInput =  cmdArgsMode UserInput
     ,mtwo = def &= help "List of space-delimited and quoted metadata types for category two"
     ,mthree = def &= help "List of space-delimited and quoted metadata types for category three"
     ,mfour = def &= help "List of space-delimited and quoted metadata types for category four"
-    ,delimiter = "," &= help "Delimiter used for info and data files"
+    ,delimiter = "\t" &= help "Delimiter used for info and data files"
     }
 
 
@@ -93,22 +93,20 @@ main = do
     --map of geneName --> dataVector
 
     --if we have SNP data, we need to convert it into binary first
-    let finalGenomeData = case uMode == "binary" of
-                            True -> genomeData
-                            False -> convertSnpToBinary delim genomeData
+    let finalGenomeData = case uMode of
+                            "binary" -> genomeData
+                            "snp" -> convertSnpToBinary delim genomeData
+                            _ -> error "incorrect mode given, requires `snp` or `binary`"
     print finalGenomeData
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
-
-
-
-    -- print geneVectorMap
+    --print geneVectorMap
     -- let serotypeTable = countByMetadata serotype filteredInfoTable
     -- let summaryTable = summaryMetadataTable serotypeTable
     -- mapM_ putStrLn summaryTable
 
     let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
-    --print groupComps
+    print groupComps
 --
     --filter the results by pvalue
     --simple Bonferroni correction
