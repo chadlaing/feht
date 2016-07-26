@@ -1,0 +1,16 @@
+@startuml
+
+[Table.getListOfMetadata] ..> Table.InsertMetadata
+[Table.getListOfMetadata] -- Main.metadata
+
+Main.metadataInfo <-- [Table.getMetaDataFromFile]
+[Table.getMetaDataFromFile] ..> [Table.getEntry]
+[Table.getEntry] ..> [Table.getTableValues]
+
+Main.geneVectorMap <-- [Table.getGeneVectorMap]
+[Table.getGeneVectorMap] ..> [Table.addGeneData]
+
+Main.groupComps  <-- [Comparison.calculateMetadata]
+[Comparison.calculateMetadata] ..> [Comparison.compareGroups]
+
+@enduml

@@ -10,6 +10,7 @@ import           Data.Function
 import           Data.Functor
 import           Data.Maybe
 import           Data.String
+import           Data.Bool
 import           System.Console.CmdArgs
 import           System.IO
 import           Table
@@ -24,10 +25,11 @@ import           Data.List                  (zip)
 data UserInput = UserInput
     {info      :: FilePath
     ,datafile  :: FilePath
-    ,serotypes :: String
-    ,sources   :: String
-    ,countries :: String
-    ,provinces :: String
+    ,mode :: String
+    ,mone :: String
+    ,mtwo   :: String
+    ,mthree :: String
+    ,mfour :: String
     ,delimiter :: String
     } deriving (Data, Typeable, Show, Eq)
 
@@ -36,12 +38,13 @@ data UserInput = UserInput
 --do this via Ctrl-V<tab>
 userInput :: Mode (CmdArgs UserInput)
 userInput =  cmdArgsMode UserInput
-    {info = def &= help "File of genome information"
-    ,datafile = def &= help "File of binary data"
-    ,serotypes = def &= help "List of space-delimited and quoted serotypes"
-    ,sources = def &= help "List of space-delimited and quoted source"
-    ,countries = def &= help "List of space-delimited and quoted country"
-    ,provinces = def &= help "List of space-delimited and quoted province"
+    {info = def &= help "File of genome metadata information"
+    ,datafile = def &= help "File of binary or snp data"
+    ,mode = def &= help "mode of program, either 'binary', or 'snp' "
+    ,mone = def &= help "List of space-delimited and quoted metadata types for category one"
+    ,mtwo = def &= help "List of space-delimited and quoted metadata types for category two"
+    ,mthree = def &= help "List of space-delimited and quoted metadata types for category three"
+    ,mfour = def &= help "List of space-delimited and quoted metadata types for category four"
     ,delimiter = "," &= help "Delimiter used for info and data files"
     }
 
@@ -54,14 +57,15 @@ main = do
     --the input of metadata is space separated
     --we need to convert them into "Serotype, Location, Source" etc.  for use in the program
     --let uSerotype = fmap (Serotype  BS.pack) . words . serotype $ userArgs
-    let uMetadata = [serotypes userArgs
-                    ,sources userArgs
-                    ,countries userArgs
-                    ,provinces userArgs
+    let uMetadata = [mone userArgs
+                    ,mtwo userArgs
+                    ,mthree userArgs
+                    ,mfour userArgs
                     ]
 
     let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
+    let uMode = mode userArgs
     --let delim = '\t'
     --we want to split the strain information file into lines
     --and then send a list of words for processing
@@ -87,7 +91,17 @@ main = do
 
     --all but the header information is used for generating the
     --map of geneName --> dataVector
-    let geneVectorMap = getGeneVectorMap delim genomeData
+
+    --if we have SNP data, we need to convert it into binary first
+    let finalGenomeData = case uMode == "binary" of
+                            True -> genomeData
+                            False -> convertSnpToBinary delim genomeData
+
+    let geneVectorMap = getGeneVectorMap delim finalGenomeData
+
+
+
+
     -- print geneVectorMap
     -- let serotypeTable = countByMetadata serotype filteredInfoTable
     -- let summaryTable = summaryMetadataTable serotypeTable

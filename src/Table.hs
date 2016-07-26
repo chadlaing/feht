@@ -21,7 +21,7 @@ import           Data.String
 import qualified Data.Time.Calendar         as C
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (Integer, error, (+))
+import           Prelude                    (Integer, error, (+), undefined)
 import           Text.Read
 import           Text.Show
 
@@ -45,44 +45,44 @@ instance Hashable Metadata
 
 
 
-data Metadata = Serotype {unSerotype :: BS.ByteString }
-              | Source { unSource :: BS.ByteString }
-              | Country { unCountry :: BS.ByteString }
-              | Province { unProvince :: BS.ByteString }
+data Metadata = MetaOne {unMetaOne :: BS.ByteString }
+              | MetaTwo { unMetaTwo :: BS.ByteString }
+              | MetaThree { unMetaThree :: BS.ByteString }
+              | MetaFour { unMetaFour :: BS.ByteString }
               | ColumnNumber {unColumnNumber :: Maybe Int}
               deriving (Eq, Show, Ord, Generic)
 
 
-data Table = Table{serotype     :: Metadata
-                  ,source       :: Metadata
-                  ,country      :: Metadata
-                  ,province     :: Metadata
+data Table = Table{metaone      :: Metadata
+                  ,metatwo      :: Metadata
+                  ,metathree    :: Metadata
+                  ,metafour     :: Metadata
                   ,columnNumber :: Metadata } deriving (Eq, Show, Ord, Generic)
 
 
 fromMetadata :: Metadata -> BS.ByteString
 fromMetadata x = case x of
-  Serotype _-> unSerotype x
-  Source _-> unSource x
-  Country _-> unCountry x
-  Province _-> unProvince x
+  MetaOne _-> unMetaOne x
+  MetaTwo _-> unMetaTwo x
+  MetaThree _-> unMetaThree x
+  MetaFour _-> unMetaFour x
   ColumnNumber _ -> error("Column number not expected")
 
 defaultTable :: Table
 defaultTable = Table
-    {serotype = Serotype defaultNa
-    ,source = Source defaultNa
-    ,country = Country defaultNa
-    ,province = Province defaultNa
+    {metaone = MetaOne defaultNa
+    ,metatwo = MetaTwo defaultNa
+    ,metathree = MetaThree defaultNa
+    ,metafour = MetaFour defaultNa
     ,columnNumber = ColumnNumber Nothing}
 
 
 getMetadataType :: Metadata -> Table -> Metadata
 getMetadataType x = case x of
-  Serotype _ -> serotype
-  Source _ -> source
-  Country _ -> country
-  Province _ -> province
+  MetaOne _ -> metaone
+  MetaTwo _ -> metatwo
+  MetaThree _ -> metathree
+  MetaFour _ -> metafour
   ColumnNumber _ -> columnNumber
 
 
@@ -99,10 +99,10 @@ getListOfMetadata = foldl' insertMetadata []
                    -> [Metadata]
     insertMetadata xs (i,s) = let mList = fmap BS.pack . words $ s in
       case i of
-        1 -> fmap Serotype mList ++ xs
-        2 -> fmap Source mList ++ xs
-        3 -> fmap Country mList ++ xs
-        4 -> fmap Province mList ++ xs
+        1 -> fmap MetaOne mList ++ xs
+        2 -> fmap MetaTwo mList ++ xs
+        3 -> fmap MetaThree mList ++ xs
+        4 -> fmap MetaFour mList ++ xs
         _ -> error "Unknown metadata type"
 
 
@@ -127,10 +127,10 @@ getEntry hm (name:xs) = M.insert (GenomeName name) newMeta hm
 --date comes from CSV where in format 2000/01/07
 getTableValues :: Table -> (BS.ByteString, Int) -> Table
 getTableValues t (x,i)
-    | i == 1 = t{serotype = Serotype x}
-    | i == 2 = t{source = Source x}
-    | i == 3 = t{country = Country x}
-    | i == 4 = t{province = Province x}
+    | i == 1 = t{metaone = MetaOne x}
+    | i == 2 = t{metatwo = MetaTwo x}
+    | i == 3 = t{metathree = MetaThree x}
+    | i == 4 = t{metafour = MetaFour x}
     | otherwise = t
 
 
@@ -170,6 +170,24 @@ getDateFromCSV x =  case BS.split '/' x of
 
 intValue :: BS.ByteString -> Int
 intValue x = read (BS.unpack x)::Int
+
+
+
+--convert SNPs to binary values
+--For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
+-- and G vs. all
+type BinaryLine = BS.ByteString
+type SnpLine = BS.ByteString
+convertSnpToBinary :: Char
+                   -> [SnpLine]
+                   -> [BinaryLine]
+convertSnpToBinary d xs = foldl' (convertSnpLineToBinary d) [] xs
+  where
+    convertSnpLineToBinary :: Char
+                           -> [BinaryLine]
+                           -> SnpLine
+                           -> [BinaryLine]
+    convertSnpLineToBinary = undefined
 
 
 --this assumes we have stripped the header line and have [[genename:values]]

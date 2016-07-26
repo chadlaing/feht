@@ -98,7 +98,7 @@ formatComparisonAsTable = M.foldlWithKey' formatFETResult []
                     -> [BS.ByteString]
     formatFETResult xs c fr = newComparison ++ xs
       where
-        columnHeaders = BS.pack "Name\tGroupOneA\tGroupOneB\tGroupTwoA\tGroubTwoB\tpValue"
+        columnHeaders = BS.pack "Name\tGroupOneA(+)\tGroupOneB(-)\tGroupTwoA(+)\tGroubTwoB(-)\tpValue"
         newComparison = getHeader c:columnHeaders:xs'
         getHeader :: Comparison -> BS.ByteString
         getHeader c' = BS.intercalate (BS.singleton '\t')
