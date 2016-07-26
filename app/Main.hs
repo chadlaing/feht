@@ -96,7 +96,7 @@ main = do
     let finalGenomeData = case uMode == "binary" of
                             True -> genomeData
                             False -> convertSnpToBinary delim genomeData
-
+    print finalGenomeData
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
 
@@ -108,7 +108,7 @@ main = do
     -- mapM_ putStrLn summaryTable
 
     let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
-    print groupComps
+    --print groupComps
 --
     --filter the results by pvalue
     --simple Bonferroni correction

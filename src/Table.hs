@@ -181,14 +181,28 @@ type SnpLine = BS.ByteString
 convertSnpToBinary :: Char
                    -> [SnpLine]
                    -> [BinaryLine]
-convertSnpToBinary d xs = foldl' (convertSnpLineToBinary d) [] xs
+convertSnpToBinary d = foldl' (convertSnpLineToBinary d) []
   where
     convertSnpLineToBinary :: Char
                            -> [BinaryLine]
                            -> SnpLine
                            -> [BinaryLine]
-    convertSnpLineToBinary = undefined
-
+    convertSnpLineToBinary d' xs sl = a:t:c:g:xs
+      where
+        (geneName,lineWithoutGeneName) = BS.break (== ',') sl
+        replaceChar :: Char
+                    -> Char
+                    -> Char
+        replaceChar matchChar currentChar
+            | n == matchChar = '1'
+            | n == d' = d'
+            | otherwise = '0'
+          where
+            n = toUpper currentChar
+        a = BS.concat [geneName, "a", BS.map (replaceChar 'A') lineWithoutGeneName]
+        t = BS.concat [geneName, "t", BS.map (replaceChar 'T') lineWithoutGeneName]
+        c = BS.concat [geneName, "c", BS.map (replaceChar 'C') lineWithoutGeneName]
+        g = BS.concat [geneName, "g", BS.map (replaceChar 'G') lineWithoutGeneName]
 
 --this assumes we have stripped the header line and have [[genename:values]]
 --the char is the delimiter used for splitting each data line
