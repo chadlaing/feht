@@ -160,27 +160,3 @@ filterTable t mc mv = M.filter filterFunc t
         Nothing -> False
 
 
-
---getMetadataType returns the record syntax FUNCTION that extracts the particular
---type of metadata from a table
--- filterMetadataInfo :: [Metadata] -> M.HashMap GenomeName Table -> M.HashMap GenomeName Table
--- filterMetadataInfo xs = M.filter filterFunc
---   where
---     filterFunc :: Table -> Bool
---     filterFunc t = or allComparisons
---       where
---         allComparisons = fmap currentTest xs
---         currentTest :: Metadata
---                     -> Bool
---         currentTest x = getMetadataType x t == x
---
-
---this function takes a pre-filtered data structure
---It returns a list of all column positions for the genomes
--- getColumnList :: M.HashMap GenomeName Table
---               -> [Int]
--- getColumnList = M.foldl' (\ a v -> (fromJust . unColumnNumber. columnNumber $ v):a ) []
---
-
-
-
