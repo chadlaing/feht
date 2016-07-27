@@ -56,6 +56,7 @@ calculateFetFromComparison c gvh = M.insert c allFetResults M.empty
                 (GroupTwoB gtb) TwoTail
 
 
+
 getListOfColumns :: Table
                  -> [Int]
 getListOfColumns t = foldl' getColumn [] (M.keys t)

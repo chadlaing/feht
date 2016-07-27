@@ -77,7 +77,7 @@ main = do
     let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
 
     --now we have all the information to fully populate the metadataInfo
-    let metadataInfo = getMetadataFromFile nameColumnHash . fmap (BS.split delim) $ BS.lines infoFile
+    let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.split delim) $ BS.lines infoFile
 
     --if we have SNP data, we need to convert it into binary first
     let finalGenomeData = case uMode of
@@ -86,9 +86,14 @@ main = do
                             _ -> error "incorrect mode given, requires `snp` or `binary`"
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
-
---     let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
---     print groupComps
+    print geneVectorMap
+    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "AB"]
+    let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "ON"]
+    let testComp = calculateFetFromComparison
+                    Comparison{compGroup1 = testGroupOne
+                              ,compGroup2 = testGroupTwo}
+                    geneVectorMap
+    print testComp
 
 --     --filter the results by pvalue
 --     --simple Bonferroni correction
