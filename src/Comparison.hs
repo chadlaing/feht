@@ -2,55 +2,87 @@
 
 module Comparison where
 
--- import qualified Data.ByteString.Lazy.Char8 as BS
--- import           Data.Char
--- import           Data.Eq
--- import           Data.Foldable
--- import           Data.Function
--- import           Data.Hashable
--- import qualified Data.HashMap.Strict        as M
--- import           Data.List                  (filter, (\\))
--- import           Data.Maybe
--- import           Data.Ord
--- import qualified Data.Vector.Unboxed        as V
--- import           GHC.Generics               (Generic)
--- import           FET
--- import           Table
--- import           Prelude                    (fromIntegral, length, (++), (-),
---                                              (/))
--- import           Text.Show
+import qualified Data.ByteString.Lazy.Char8 as BS
+import           Data.Char
+import           Data.Eq
+import           Data.Int
+import           Data.Foldable
+import           Data.Function
+import           Data.Hashable
+import qualified Data.HashMap.Strict        as M
+import           Data.List                  (filter, (\\))
+import           Data.Maybe
+import           Data.Ord
+import qualified Data.Vector.Unboxed        as V
+import           GHC.Generics               (Generic)
+import           FET
+import           Table
+import           Prelude                    (fromIntegral, length, (++),(+), (-),
+                                             (/))
+import           Text.Show
 --
 --
--- data Comparison = Comparison{compGroup1  :: Metadata
---                             ,compGroup2  :: Maybe Metadata
---                             ,filterGroup :: Maybe Metadata
---                             }deriving (Show, Eq, Ord, Generic)
---
--- instance Hashable Comparison
---
---
--- --we want a HashMap of all metadata,
--- --eg. Serotype -> [O157:H7, O26:H11]; Location -> [Canada, Sweden];
--- --Source -> [Bovine, Human, Environment]
--- --this function should iterate through all of the keys are create a comparison
--- --based on all the gene data for each value of each key, plus vs. all and combined vs. all
--- --eg. for Serotype
--- --  O157:H7 vs. O26:H11
--- --  O157:H7 vs. all else
--- --  O26:H11 vs. all else
--- -- (O26:H11 + O157:H7) vs. all else
--- -- do the same for all other metadata entries in the HashMap.
--- -- Second Level analyses:
--- -- Filter based on every term of one Metadata type and filter based on the others
--- -- eg.
--- -- Filter the data for only entries containing O157:H7
--- -- then perform:
--- -- Bovine vs. all
--- -- Bovine vs. Human ... etc. for all combos, the same as above for Serotype.
--- -- then for the Location, while still filtered for O157:H7
--- -- Canada vs. All
--- -- Sweden vs. All ... etc. for all combos.
--- -- This should be dynamic for as many Metadata categories and values that are entered
+data Comparison = Comparison{compGroup1  :: Table
+                            ,compGroup2  :: Table
+                            }deriving (Show, Eq, Generic)
+instance Hashable Comparison
+
+
+type GeneVectorHash = M.HashMap GeneName (V.Vector Char)
+type FETResultHash = M.HashMap Comparison [FETResult]
+calculateFetFromComparison :: Comparison
+                           -> GeneVectorHash
+                           -> FETResultHash
+calculateFetFromComparison c gvh = M.insert c allFetResults M.empty
+  where
+    allFetResults :: [FETResult]
+    allFetResults = M.foldlWithKey' calcFet [] gvh
+      where
+        calcFet :: [FETResult]
+                -> GeneName
+                -> V.Vector Char
+                -> [FETResult]
+        calcFet xs gn vc = theResult:xs
+          where
+            goColumnList = getListOfColumns $ compGroup1 c
+            gtColumnList = getListOfColumns $ compGroup2 c
+            got = M.size $ compGroup1 c
+            gtt = M.size $ compGroup2 c
+            goa = countCharInVectorByIndices vc '1' goColumnList
+            gta = countCharInVectorByIndices vc '1' gtColumnList
+            gob = got - goa
+            gtb = gtt - gta
+            theResult = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
+                (GroupTwoB gtb) TwoTail
+
+
+getListOfColumns :: Table
+                 -> [Int]
+getListOfColumns t = foldl' getColumn [] (M.keys t)
+  where
+    getColumn :: [Int]
+              -> GenomeInfo
+              -> [Int]
+    getColumn xs gi = columnNumber gi:xs
+
+
+
+--check the character at each index that is passed in
+--returns total count of matches
+countCharInVectorByIndices :: V.Vector Char
+                           -> Char
+                           -> [Int]
+                           -> Int
+countCharInVectorByIndices v matchChar = foldl' aFun 0
+  where
+    aFun :: Int -> Int -> Int
+    aFun rt vi = if matchChar == (v V.! vi)
+          then rt + 1
+          else rt
+
+
+
+
 -- calculateMetadata :: M.HashMap GenomeName Table
 --                   -> M.HashMap GeneName (V.Vector Char)
 --                   -> [Metadata]
@@ -81,12 +113,7 @@ module Comparison where
 --                    -> [FETResult]
 --             getFET fr gName vc' = theResult:fr
 --               where
---                 goa = countCharInVectorByIndices vc' '1' goColumnList
---                 gta = countCharInVectorByIndices vc' '1' gtColumnList
---                 gob = got - goa
---                 gtb = tl - goa - gob - gta
---                 theResult = fet (FETName $ unGeneName gName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
---                     (GroupTwoB gtb) TwoTail
+
 --
 --
 -- formatComparisonAsTable :: M.HashMap Comparison [FETResult] -> [BS.ByteString]

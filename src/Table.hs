@@ -26,38 +26,44 @@ import           Text.Read
 import           Text.Show
 
 
-newtype GenomeName = GenomeName {unGenomeName :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
 newtype MetaCategory = MetaCategory {unMetaCategory :: BS.ByteString} deriving (Eq, Show, Ord, Generic)
 newtype MetaValue = MetaValue {unMetaValue :: BS.ByteString} deriving (Eq, Show, Ord, Generic)
+
+data GenomeInfo =
+    GenomeInfo{genomeName :: BS.ByteString
+              ,columnNumber :: Int} deriving (Show, Eq, Ord, Generic)
 
 --make classes instances of Hashable
 --this requires the import of GHC.Generics (Generic) and Data.Hashable
 --also requires the Type to derive Generic
 --then a new instance for Hashable can be created
 instance Hashable GeneName
-instance Hashable GenomeName
+instance Hashable GenomeInfo
 instance Hashable MetaCategory
 instance Hashable MetaValue
 
 
 type MetaHash = M.HashMap MetaCategory MetaValue
-type Table = M.HashMap GenomeName MetaHash
+type Table = M.HashMap GenomeInfo MetaHash
 
 
 --For each line in the file, except the first one, we want to create a record
 --with all of the information given in Table
 --the first one contains column headers
 --The first line will be used to get the MetaCategory items
-getMetadataFromFile :: [[BS.ByteString]] -> Table
-getMetadataFromFile [] = error "File is empty"
-getMetadataFromFile ((blank:header):xs) = foldl' getEntry M.empty xs
+getMetadataFromFile :: GenomeNameColumnHash
+                    -> [[BS.ByteString]]
+                    -> Table
+getMetadataFromFile _ [] = error "File is empty"
+getMetadataFromFile gnch ((blank:header):xs) = foldl' getEntry M.empty xs
   where
     getEntry :: Table
              -> [BS.ByteString]
              -> Table
-    getEntry t (genomeName:xs') = M.insert (GenomeName genomeName) metaHash t
+    getEntry t (gName:xs') = M.insert GenomeInfo {genomeName = gName, columnNumber = cNum} metaHash t
       where
+        cNum = fromMaybe (error "There are genome names in the data that do not exist in the metadata") $ M.lookup gName gnch
         metaHash = foldl' metaAssign M.empty alignedMeta
           where
             metaAssign :: MetaHash
@@ -69,7 +75,15 @@ getMetadataFromFile ((blank:header):xs) = foldl' getEntry M.empty xs
             alignedMeta = zip header xs'
 
 
-
+type GenomeNameColumnHash = M.HashMap BS.ByteString Int
+assignColumnNumbersToGenome :: [(BS.ByteString, Int)]
+                            -> GenomeNameColumnHash
+assignColumnNumbersToGenome = foldl' assignColumn M.empty
+  where
+    assignColumn :: GenomeNameColumnHash
+                 -> (BS.ByteString, Int)
+                 -> GenomeNameColumnHash
+    assignColumn g (n, i) = M.insert n i g
 
 intValue :: BS.ByteString -> Int
 intValue x = read (BS.unpack x)::Int
@@ -154,18 +168,6 @@ getGeneVectorMap delimiter = foldl' addGeneData M.empty
 -- getColumnList = M.foldl' (\ a v -> (fromJust . unColumnNumber. columnNumber $ v):a ) []
 --
 
---check the character at each index that is passed in
---returns total count of matches
-countCharInVectorByIndices :: V.Vector Char
-                           -> Char
-                           -> [Int]
-                           -> Int
-countCharInVectorByIndices v matchChar = foldl' aFun 0
-  where
-    aFun :: Int -> Int -> Int
-    aFun rt vi = if matchChar == (v V.! vi)
-          then rt + 1
-          else rt
 
 
 
