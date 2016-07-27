@@ -86,14 +86,15 @@ main = do
                             _ -> error "incorrect mode given, requires `snp` or `binary`"
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
-    print geneVectorMap
+
     let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "AB"]
     let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "ON"]
     let testComp = calculateFetFromComparison
                     Comparison{compGroup1 = testGroupOne
                               ,compGroup2 = testGroupTwo}
                     geneVectorMap
-    print testComp
+    let tableOfComps = formatFETResultHashAsTable testComp
+    mapM_ BS.putStrLn tableOfComps
 
 --     --filter the results by pvalue
 --     --simple Bonferroni correction

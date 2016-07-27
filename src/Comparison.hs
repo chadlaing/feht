@@ -7,6 +7,7 @@ import           Data.Char
 import           Data.Eq
 import           Data.Int
 import           Data.Foldable
+import           Data.Functor
 import           Data.Function
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
@@ -83,17 +84,22 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
 
 
 
+formatFETResultHashAsTable :: FETResultHash
+                           -> [BS.ByteString]
+formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
+  where
+    formatFETResult :: [BS.ByteString]
+                    -> Comparison
+                    -> [FETResult]
+                    -> [BS.ByteString]
+    formatFETResult xs c fr = newComparison:xs
+      where
+       newComparison = BS.intercalate (BS.singleton '\t') [description, newHeader, allResults]
+       --description = (concatMap unMetaCategory . concatMap M.keys . M.elems . compGroup1) c
+       description = BS.pack "desc"
+       newHeader = BS.pack "Name\tGroupOneA(+)\tGroupOneB(-)\tGroupTwoA(+)\tGroubTwoB(-)\tpValue"
+       allResults = BS.pack "test"
 
-
-
-
--- formatComparisonAsTable :: M.HashMap Comparison [FETResult] -> [BS.ByteString]
--- formatComparisonAsTable = M.foldlWithKey' formatFETResult []
---   where
---     formatFETResult :: [BS.ByteString]
---                     -> Comparison
---                     -> [FETResult]
---                     -> [BS.ByteString]
 --     formatFETResult xs c fr = newComparison ++ xs
 --       where
 --         columnHeaders = BS.pack "Name\tGroupOneA(+)\tGroupOneB(-)\tGroupTwoA(+)\tGroubTwoB(-)\tpValue"
