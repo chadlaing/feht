@@ -146,7 +146,21 @@ getGeneVectorMap delimiter = foldl' addGeneData M.empty
 
 
 --This is the general function for returning a HashMap that contains only those
---entries that matched a particular Metadata entry.
+--entries that match a MetaCategory and [MetaValue]
+filterTable :: Table
+            -> MetaCategory
+            -> [MetaValue]
+            -> Table
+filterTable t mc mv = M.filter filterFunc t
+  where
+    filterFunc :: MetaHash
+               -> Bool
+    filterFunc mh = case M.lookup mc mh of
+        Just theValue -> or $ fmap (== theValue) mv
+        Nothing -> False
+
+
+
 --getMetadataType returns the record syntax FUNCTION that extracts the particular
 --type of metadata from a table
 -- filterMetadataInfo :: [Metadata] -> M.HashMap GenomeName Table -> M.HashMap GenomeName Table
@@ -167,8 +181,6 @@ getGeneVectorMap delimiter = foldl' addGeneData M.empty
 --               -> [Int]
 -- getColumnList = M.foldl' (\ a v -> (fromJust . unColumnNumber. columnNumber $ v):a ) []
 --
-
-
 
 
 

@@ -83,39 +83,9 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
 
 
 
--- calculateMetadata :: M.HashMap GenomeName Table
---                   -> M.HashMap GeneName (V.Vector Char)
---                   -> [Metadata]
---                   -> M.HashMap Comparison [FETResult]
--- calculateMetadata hm vc = foldl' compareGroups M.empty
---   where
---     compareGroups :: M.HashMap Comparison [FETResult]
---                   -> Metadata
---                   -> M.HashMap Comparison [FETResult]
---     compareGroups hm' x = M.insert currentComparison fetResults hm'
---       where
---         currentComparison = Comparison{compGroup1 = x
---                                       ,compGroup2 = Nothing
---                                       ,filterGroup = Nothing}
---         fetResults = M.foldlWithKey' getFET [] vc
---           where
---             goMetaInfo = filterMetadataInfo [x] hm
---             goColumnList = getColumnList goMetaInfo
---             allColumnList = getColumnList hm
---             --due to filtering the non-column containing metadata, the
---             --column list is not sequential with number of items
---             gtColumnList = allColumnList \\ goColumnList
---             got = M.size goMetaInfo
---             tl = M.size hm
---             getFET :: [FETResult]
---                    -> GeneName
---                    -> V.Vector Char
---                    -> [FETResult]
---             getFET fr gName vc' = theResult:fr
---               where
 
---
---
+
+
 -- formatComparisonAsTable :: M.HashMap Comparison [FETResult] -> [BS.ByteString]
 -- formatComparisonAsTable = M.foldlWithKey' formatFETResult []
 --   where
