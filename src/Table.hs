@@ -27,13 +27,9 @@ import           Text.Show
 
 
 newtype GenomeName = GenomeName {unGenomeName :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
--- newtype Serotype = Serotype { unSerotype :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
--- newtype Source = Source { unSource :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
--- newtype Country = Country { unCountry :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
--- newtype Province = Province { unProvince :: BS.ByteString } deriving (Show, Eq, Ord, Generic)
--- newtype IsolationDate = IsolationDate { unIsolationDate :: Maybe C.Day } deriving (Show, Eq, Ord, Generic)
---newtype ColumnNumber = ColumnNumber { unColumnNumber :: Maybe Int} deriving (Show, Eq, Ord)
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
+newtype MetaCategory = MetaCategory {unMetaCategory :: BS.ByteString} deriving (Eq, Show, Ord, Generic)
+newtype MetaValue = MetaValue {unMetaValue :: BS.ByteString} deriving (Eq, Show, Ord, Generic)
 
 --make classes instances of Hashable
 --this requires the import of GHC.Generics (Generic) and Data.Hashable
@@ -41,131 +37,38 @@ newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, 
 --then a new instance for Hashable can be created
 instance Hashable GeneName
 instance Hashable GenomeName
-instance Hashable Metadata
+instance Hashable MetaCategory
+instance Hashable MetaValue
 
 
-
-data Metadata = MetaOne {unMetaOne :: BS.ByteString }
-              | MetaTwo { unMetaTwo :: BS.ByteString }
-              | MetaThree { unMetaThree :: BS.ByteString }
-              | MetaFour { unMetaFour :: BS.ByteString }
-              | ColumnNumber {unColumnNumber :: Maybe Int}
-              deriving (Eq, Show, Ord, Generic)
-
-
-data Table = Table{metaone      :: Metadata
-                  ,metatwo      :: Metadata
-                  ,metathree    :: Metadata
-                  ,metafour     :: Metadata
-                  ,columnNumber :: Metadata } deriving (Eq, Show, Ord, Generic)
-
-
-fromMetadata :: Metadata -> BS.ByteString
-fromMetadata x = case x of
-  MetaOne _-> unMetaOne x
-  MetaTwo _-> unMetaTwo x
-  MetaThree _-> unMetaThree x
-  MetaFour _-> unMetaFour x
-  ColumnNumber _ -> error("Column number not expected")
-
-defaultTable :: Table
-defaultTable = Table
-    {metaone = MetaOne defaultNa
-    ,metatwo = MetaTwo defaultNa
-    ,metathree = MetaThree defaultNa
-    ,metafour = MetaFour defaultNa
-    ,columnNumber = ColumnNumber Nothing}
-
-
-getMetadataType :: Metadata -> Table -> Metadata
-getMetadataType x = case x of
-  MetaOne _ -> metaone
-  MetaTwo _ -> metatwo
-  MetaThree _ -> metathree
-  MetaFour _ -> metafour
-  ColumnNumber _ -> columnNumber
-
-
-defaultNa :: BS.ByteString
-defaultNa = BS.pack "NA"
-
-
-
-getListOfMetadata :: [(Int,String)] -> [Metadata]
-getListOfMetadata = foldl' insertMetadata []
-  where
-    insertMetadata :: [Metadata]
-                   -> (Int, String)
-                   -> [Metadata]
-    insertMetadata xs (i,s) = let mList = fmap BS.pack . words $ s in
-      case i of
-        1 -> fmap MetaOne mList ++ xs
-        2 -> fmap MetaTwo mList ++ xs
-        3 -> fmap MetaThree mList ++ xs
-        4 -> fmap MetaFour mList ++ xs
-        _ -> error "Unknown metadata type"
-
+type MetaHash = M.HashMap MetaCategory MetaValue
+type Table = M.HashMap GenomeName MetaHash
 
 
 --For each line in the file, except the first one, we want to create a record
 --with all of the information given in Table
 --the first one contains column headers
-getMetadataFromFile :: [[BS.ByteString]] -> M.HashMap GenomeName Table
+--The first line will be used to get the MetaCategory items
+getMetadataFromFile :: [[BS.ByteString]] -> Table
 getMetadataFromFile [] = error "File is empty"
-getMetadataFromFile (_:xs) = foldl' getEntry M.empty xs
-
-
-getEntry :: M.HashMap GenomeName Table
-         -> [BS.ByteString]
-         -> M.HashMap GenomeName Table
-getEntry hm [] = hm
-getEntry hm (name:xs) = M.insert (GenomeName name) newMeta hm
+getMetadataFromFile ((blank:header):xs) = foldl' getEntry M.empty xs
   where
-    newMeta = foldl' getTableValues defaultTable $ zip xs [1..]
-
-
---date comes from CSV where in format 2000/01/07
-getTableValues :: Table -> (BS.ByteString, Int) -> Table
-getTableValues t (x,i)
-    | i == 1 = t{metaone = MetaOne x}
-    | i == 2 = t{metatwo = MetaTwo x}
-    | i == 3 = t{metathree = MetaThree x}
-    | i == 4 = t{metafour = MetaFour x}
-    | otherwise = t
-
-
-
---we don't want to have to pass default values to the
---public facing functions. Partially apply this
---function to the "workhorse" private function
---that automatically supplies the defaults
---eg. first column contains row names, so skip
-addColumnNumbers :: M.HashMap GenomeName Table
-                 -> [BS.ByteString]
-                 -> M.HashMap GenomeName Table
-addColumnNumbers _ [] = error "No data sent to addColumnNumbers"
-addColumnNumbers hm (_:xs) = ggn $ zip xs [0..]
-  where
-    ggn :: [(BS.ByteString, Int)] -> M.HashMap GenomeName Table
-    ggn = foldl' addColumnToTable hm
-    --we will use the adjust function
-    --only changes a value if it exists
-    --otherwise, returns the original HashMap
-    addColumnToTable :: M.HashMap GenomeName Table
-                     -> (BS.ByteString, Int)
-                     -> M.HashMap GenomeName Table
-    addColumnToTable hm' (x,i) = M.adjust addColumn (GenomeName x) hm'
+    getEntry :: Table
+             -> [BS.ByteString]
+             -> Table
+    getEntry t (genomeName:xs') = M.insert (GenomeName genomeName) metaHash t
       where
-        addColumn :: Table -> Table
-        addColumn t = t{columnNumber = ColumnNumber $ Just i}
+        metaHash = foldl' metaAssign M.empty alignedMeta
+          where
+            metaAssign :: MetaHash
+                       -> (BS.ByteString, BS.ByteString)
+                       -> MetaHash
+            metaAssign t' (category, value) = M.insert (MetaCategory category) (MetaValue value) t'
+            -- this will create a list of ByteString tuples, that need to be made
+            -- into the appropriate MetaCategory and values
+            alignedMeta = zip header xs'
 
 
-
-getDateFromCSV :: BS.ByteString -> Maybe C.Day
-getDateFromCSV x =  case BS.split '/' x of
-    [year,month,day] -> Just $ C.fromGregorian (read (BS.unpack year)::Integer)
-                          (intValue month) (intValue day)
-    _ -> Nothing
 
 
 intValue :: BS.ByteString -> Int
@@ -228,43 +131,28 @@ getGeneVectorMap delimiter = foldl' addGeneData M.empty
         vectorData = V.fromList . BS.unpack . BS.filter (/= delimiter) $ vData
 
 
--- countByMetadata :: (Table -> Metadata) -> M.HashMap GenomeName Table -> M.HashMap Metadata Int
--- countByMetadata meta = foldl' (addMetadataValue meta) M.empty
-
-
--- addMetadataValue :: (Table -> a ) -> M.HashMap a Int -> Table -> M.HashMap a Int
--- addMetadataValue meta hm t = M.insertWith (+) (meta t) 1 hm
-
-
--- summaryMetadataTable :: M.HashMap a Int -> [String]
--- summaryMetadataTable hm = sort $ M.foldlWithKey' makeTable [] hm
---   where
---     makeTable :: => [String] -> b -> Int -> [String]
---     makeTable xs name v = (BS.unpack(unMeta name) ++ "\t" ++ show v):xs
-
-
 --This is the general function for returning a HashMap that contains only those
 --entries that matched a particular Metadata entry.
 --getMetadataType returns the record syntax FUNCTION that extracts the particular
 --type of metadata from a table
-filterMetadataInfo :: [Metadata] -> M.HashMap GenomeName Table -> M.HashMap GenomeName Table
-filterMetadataInfo xs = M.filter filterFunc
-  where
-    filterFunc :: Table -> Bool
-    filterFunc t = or allComparisons
-      where
-        allComparisons = fmap currentTest xs
-        currentTest :: Metadata
-                    -> Bool
-        currentTest x = getMetadataType x t == x
-
+-- filterMetadataInfo :: [Metadata] -> M.HashMap GenomeName Table -> M.HashMap GenomeName Table
+-- filterMetadataInfo xs = M.filter filterFunc
+--   where
+--     filterFunc :: Table -> Bool
+--     filterFunc t = or allComparisons
+--       where
+--         allComparisons = fmap currentTest xs
+--         currentTest :: Metadata
+--                     -> Bool
+--         currentTest x = getMetadataType x t == x
+--
 
 --this function takes a pre-filtered data structure
 --It returns a list of all column positions for the genomes
-getColumnList :: M.HashMap GenomeName Table
-              -> [Int]
-getColumnList = M.foldl' (\ a v -> (fromJust . unColumnNumber. columnNumber $ v):a ) []
-
+-- getColumnList :: M.HashMap GenomeName Table
+--               -> [Int]
+-- getColumnList = M.foldl' (\ a v -> (fromJust . unColumnNumber. columnNumber $ v):a ) []
+--
 
 --check the character at each index that is passed in
 --returns total count of matches

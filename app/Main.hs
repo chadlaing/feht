@@ -63,7 +63,7 @@ main = do
                     ,mfour userArgs
                     ]
 
-    let metadata = getListOfMetadata $ zip [1..] uMetadata
+    --let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
     let uMode = mode userArgs
     --let delim = '\t'
@@ -71,48 +71,48 @@ main = do
     --and then send a list of words for processing
     infoFile <- BS.readFile $ info userArgs
     let metadataInfo = getMetadataFromFile . fmap (BS.split delim) $ BS.lines infoFile
-
-    -- --read in Table header
-    -- --add the column number to the Table for each genome
-    dataFile <- BS.readFile $ datafile userArgs
-    let dataLines = BS.lines dataFile
-    --we only need the headers of the data table to map the names to columns
-    let (genomeNames:genomeData) = dataLines
-
-    --split the header line on the delimiter to get all genome names
-    --add the column number to each metadata table
-    --remove entries not present in the column headers
-    let finalMetadataInfo = addColumnNumbers metadataInfo (BS.split delim genomeNames)
-    --print finalMetadataInfo
-    --the strain information sheet contains information on more genomes than
-    --exist in the data sheet
-    --filter out the genomes for which there are no data
-    let filteredMetadataInfo = M.filter (isJust . unColumnNumber . columnNumber) finalMetadataInfo
-
-    --all but the header information is used for generating the
-    --map of geneName --> dataVector
-
-    --if we have SNP data, we need to convert it into binary first
-    let finalGenomeData = case uMode of
-                            "binary" -> genomeData
-                            "snp" -> convertSnpToBinary delim genomeData
-                            _ -> error "incorrect mode given, requires `snp` or `binary`"
-    print finalGenomeData
-    let geneVectorMap = getGeneVectorMap delim finalGenomeData
-
-    --print geneVectorMap
-    -- let serotypeTable = countByMetadata serotype filteredInfoTable
-    -- let summaryTable = summaryMetadataTable serotypeTable
-    -- mapM_ putStrLn summaryTable
-
-    let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
-    print groupComps
+    print metadataInfo
+--     -- --read in Table header
+--     -- --add the column number to the Table for each genome
+--     dataFile <- BS.readFile $ datafile userArgs
+--     let dataLines = BS.lines dataFile
+--     --we only need the headers of the data table to map the names to columns
+--     let (genomeNames:genomeData) = dataLines
 --
-    --filter the results by pvalue
-    --simple Bonferroni correction
-    let filteredGroupComps = filterComparisonsByPValue groupComps
-
-    let tableOfComps = formatComparisonAsTable filteredGroupComps
-    mapM_ BS.putStrLn tableOfComps
+--     --split the header line on the delimiter to get all genome names
+--     --add the column number to each metadata table
+--     --remove entries not present in the column headers
+--     let finalMetadataInfo = addColumnNumbers metadataInfo (BS.split delim genomeNames)
+--     --print finalMetadataInfo
+--     --the strain information sheet contains information on more genomes than
+--     --exist in the data sheet
+--     --filter out the genomes for which there are no data
+--     let filteredMetadataInfo = M.filter (isJust . unColumnNumber . columnNumber) finalMetadataInfo
+--
+--     --all but the header information is used for generating the
+--     --map of geneName --> dataVector
+--
+--     --if we have SNP data, we need to convert it into binary first
+--     let finalGenomeData = case uMode of
+--                             "binary" -> genomeData
+--                             "snp" -> convertSnpToBinary delim genomeData
+--                             _ -> error "incorrect mode given, requires `snp` or `binary`"
+--     --print finalGenomeData
+--     let geneVectorMap = getGeneVectorMap delim finalGenomeData
+--
+--     --print geneVectorMap
+--     -- let serotypeTable = countByMetadata serotype filteredInfoTable
+--     -- let summaryTable = summaryMetadataTable serotypeTable
+--     -- mapM_ putStrLn summaryTable
+--
+--     let groupComps = calculateMetadata filteredMetadataInfo geneVectorMap metadata
+--     print groupComps
+-- --
+--     --filter the results by pvalue
+--     --simple Bonferroni correction
+--     let filteredGroupComps = filterComparisonsByPValue groupComps
+--
+--     let tableOfComps = formatComparisonAsTable filteredGroupComps
+--     mapM_ BS.putStrLn tableOfComps
 
     putStrLn "Done"
