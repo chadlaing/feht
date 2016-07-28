@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Comparison where
 
@@ -11,7 +12,7 @@ import           Data.Functor
 import           Data.Function
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
-import           Data.List                  (filter, (\\))
+import           Data.List
 import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
@@ -19,7 +20,7 @@ import           GHC.Generics               (Generic)
 import           FET
 import           Table
 import           Prelude                    (fromIntegral, length, (++),(+), (-),
-                                             (/))
+                                             (/), error)
 import           Text.Show
 --
 --
@@ -27,6 +28,8 @@ data Comparison = Comparison{compGroup1  :: Table
                             ,compGroup2  :: Table
                             }deriving (Show, Eq, Generic)
 instance Hashable Comparison
+
+
 
 
 type GeneVectorHash = M.HashMap GeneName (V.Vector Char)
@@ -94,11 +97,45 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
                     -> [BS.ByteString]
     formatFETResult xs c fr = newComparison:xs
       where
-       newComparison = BS.intercalate (BS.singleton '\t') [description, newHeader, allResults]
-       --description = (concatMap unMetaCategory . concatMap M.keys . M.elems . compGroup1) c
-       description = BS.pack "desc"
-       newHeader = BS.pack "Name\tGroupOneA(+)\tGroupOneB(-)\tGroupTwoA(+)\tGroubTwoB(-)\tpValue"
-       allResults = BS.pack "test"
+       newComparison = BS.intercalate (BS.singleton '\t') [newHeader, allResults]
+       groupOneDescription = getAllMetaValue $ compGroup1 c
+       groupTwoDescription = getAllMetaValue $ compGroup2 c
+       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
+       allResults = "test"
+       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
+
+
+--Table is Hash of Hash
+--Get the values of the HoH, get unique elements, then combine into single
+--ByteString
+getAllMetaValue :: Table
+                -> BS.ByteString
+getAllMetaValue t = BS.intercalate (BS.singleton ' ') finalList
+  where
+    allMetaHash = M.elems t
+    allCategories = nub . concatMap M.keys $ allMetaHash
+    finalList = foldl' getValueList [] allCategories
+      where
+        getValueList :: [BS.ByteString]
+                     -> MetaCategory
+                     -> [BS.ByteString]
+        getValueList xs m = x:xs
+          where
+            x = BS.intercalate (BS.singleton ':') [unMetaCategory m, stringOfValues]
+            stringOfValues = BS.intercalate (BS.singleton ',') $ nub allValues
+            allValues = foldl' gvl [] allMetaHash
+              where
+                gvl :: [BS.ByteString]
+                    -> MetaHash
+                    -> [BS.ByteString]
+                gvl xs mh = unMetaValue (fromMaybe (error "MetaCategory does not exist") (M.lookup m mh)):xs
+
+
+
+
+
+-- . nub . fmap unMetaValue . concatMap M.elems . M.elems
+
 
 --     formatFETResult xs c fr = newComparison ++ xs
 --       where

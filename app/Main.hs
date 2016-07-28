@@ -26,10 +26,6 @@ data UserInput = UserInput
     {info      :: FilePath
     ,datafile  :: FilePath
     ,mode :: String
-    ,mone :: String
-    ,mtwo   :: String
-    ,mthree :: String
-    ,mfour :: String
     ,delimiter :: String
     } deriving (Data, Typeable, Show, Eq)
 
@@ -41,10 +37,6 @@ userInput =  cmdArgsMode UserInput
     {info = def &= help "File of genome metadata information"
     ,datafile = def &= help "File of binary or snp data"
     ,mode = def &= help "mode of program, either 'binary', or 'snp' "
-    ,mone = def &= help "List of space-delimited and quoted metadata types for category one"
-    ,mtwo = def &= help "List of space-delimited and quoted metadata types for category two"
-    ,mthree = def &= help "List of space-delimited and quoted metadata types for category three"
-    ,mfour = def &= help "List of space-delimited and quoted metadata types for category four"
     ,delimiter = "\t" &= help "Delimiter used for info and data files"
     }
 
@@ -83,7 +75,7 @@ main = do
     let finalGenomeData = case uMode of
                             "binary" -> genomeData
                             "snp" -> convertSnpToBinary delim genomeData
-                            _ -> error "incorrect mode given, requires `snp` or `binary`"
+                            _ -> error "Incorrect mode given, requires `snp` or `binary`"
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
