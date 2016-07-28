@@ -44,7 +44,6 @@ userInput =  cmdArgsMode UserInput
 main :: IO ()
 main = do
     userArgs <- cmdArgsRun userInput
-    print userArgs
 
     --let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
@@ -79,7 +78,7 @@ main = do
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
-    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "AB"]
+    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "QC"]
     let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "ON"]
     let testComp = calculateFetFromComparison
                     Comparison{compGroup1 = testGroupOne

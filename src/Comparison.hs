@@ -95,15 +95,28 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
                     -> Comparison
                     -> [FETResult]
                     -> [BS.ByteString]
-    formatFETResult xs c fr = newComparison:xs
+    formatFETResult xs c fr = newComparison ++ xs
       where
-       newComparison = BS.intercalate (BS.singleton '\t') [newHeader, allResults]
+       newComparison = newHeader:allResults
        groupOneDescription = getAllMetaValue $ compGroup1 c
        groupTwoDescription = getAllMetaValue $ compGroup2 c
        groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
-       allResults = "test"
        newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
-
+       allResults = foldl' formatSingleFET [] fr
+         where
+           formatSingleFET :: [BS.ByteString]
+                           -> FETResult
+                           -> [BS.ByteString]
+           formatSingleFET xs fr' = newFet:xs
+             where
+                newFet = BS.intercalate (BS.singleton '\t')
+                          [fetName fr'
+                          ,BS.pack . show . groupOneA $ fr'
+                          ,BS.pack . show . groupOneB $ fr'
+                          ,BS.pack . show . groupTwoA $ fr'
+                          ,BS.pack . show . groupTwoB $ fr'
+                          ,BS.pack . show . pvalue $ fr'
+                          ]
 
 --Table is Hash of Hash
 --Get the values of the HoH, get unique elements, then combine into single
