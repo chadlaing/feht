@@ -34,6 +34,9 @@ data GenomeInfo =
     GenomeInfo{genomeName :: BS.ByteString
               ,columnNumber :: Int} deriving (Show, Eq, Ord, Generic)
 
+
+data FilterType = FilterCategory | AllButCategory deriving (Ord, Read, Show, Eq)
+
 --make classes instances of Hashable
 --this requires the import of GHC.Generics (Generic) and Data.Hashable
 --also requires the Type to derive Generic
@@ -149,14 +152,22 @@ getGeneVectorMap delimiter = foldl' addGeneData M.empty
 --entries that match a MetaCategory and [MetaValue]
 filterTable :: Table
             -> MetaCategory
+            -> FilterType
             -> [MetaValue]
             -> Table
-filterTable t mc mv = M.filter filterFunc t
+filterTable t mc ft mv = case ft of
+                        FilterCategory -> M.filter filterFunc t
+                        AllButCategory -> M.filter filterFunc' t
   where
     filterFunc :: MetaHash
                -> Bool
     filterFunc mh = case M.lookup mc mh of
-        Just theValue -> or $ fmap (== theValue) mv
+        Just v -> or $ fmap (== v) mv
+        Nothing -> False
+    filterFunc' :: MetaHash
+                -> Bool
+    filterFunc' mh' = case M.lookup mc mh' of
+        Just v' -> or $ fmap (/= v') mv
         Nothing -> False
 
 

@@ -78,20 +78,17 @@ main = do
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
-    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "QC"]
-    let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") [MetaValue "ON"]
+    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") FilterCategory [MetaValue "QC"]
+    let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") AllButCategory [MetaValue "QC"]
     let testComp = calculateFetFromComparison
                     Comparison{compGroup1 = testGroupOne
                               ,compGroup2 = testGroupTwo}
                     geneVectorMap
-    let tableOfComps = formatFETResultHashAsTable testComp
-    mapM_ BS.putStrLn tableOfComps
 
---     --filter the results by pvalue
---     --simple Bonferroni correction
---     let filteredGroupComps = filterComparisonsByPValue groupComps
---
---     let tableOfComps = formatComparisonAsTable filteredGroupComps
---     mapM_ BS.putStrLn tableOfComps
+    --filter the results by pvalue
+    --simple Bonferroni correction
+    let filteredGroupComps = filterComparisonsByPValue testComp
+    let tableOfComps = formatFETResultHashAsTable filteredGroupComps
+    mapM_ BS.putStrLn tableOfComps
 
     putStrLn "Done"

@@ -144,50 +144,20 @@ getAllMetaValue t = BS.intercalate (BS.singleton ' ') finalList
                 gvl xs mh = unMetaValue (fromMaybe (error "MetaCategory does not exist") (M.lookup m mh)):xs
 
 
+filterComparisonsByPValue :: FETResultHash
+                          -> FETResultHash
+filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
+  where
+    isSignificant :: FETResultHash
+                  -> Comparison
+                  -> [FETResult]
+                  -> FETResultHash
+    isSignificant hm k fr = M.insert k filteredList hm
+      where
+        filteredList = filter (\x -> pvalue x < correctedCutoff) fr
+        correctedCutoff = 0.05 / fromIntegral numberOfComparisons
+        numberOfComparisons = length fr
 
 
 
--- . nub . fmap unMetaValue . concatMap M.elems . M.elems
-
-
---     formatFETResult xs c fr = newComparison ++ xs
---       where
---         columnHeaders = BS.pack "Name\tGroupOneA(+)\tGroupOneB(-)\tGroupTwoA(+)\tGroubTwoB(-)\tpValue"
---         newComparison = getHeader c:columnHeaders:xs'
---         getHeader :: Comparison -> BS.ByteString
---         getHeader c' = BS.intercalate (BS.singleton '\t')
---                          [fromMetadata $ compGroup1 c'
---                          ,maybe (BS.pack "all") fromMetadata $ compGroup2 c'
---                          ,maybe (BS.pack "no filter") fromMetadata $ filterGroup c'
---                          ]
---         xs' = foldl' getFetLine [] fr
---           where
---             getFetLine :: [BS.ByteString] -> FETResult -> [BS.ByteString]
---             getFetLine xs'' fr' = newResult:xs''
---               where
---                 newResult = BS.intercalate (BS.singleton '\t')
---                               [fetName fr'
---                               ,BS.pack . show . groupOneA $ fr'
---                               ,BS.pack . show . groupOneB $ fr'
---                               ,BS.pack . show . groupTwoA $ fr'
---                               ,BS.pack . show . groupTwoB $ fr'
---                               ,BS.pack . show . pvalue $ fr'
---                               ]
---
---
--- filterComparisonsByPValue :: M.HashMap Comparison [FETResult]
---                           -> M.HashMap Comparison [FETResult]
--- filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
---   where
---     isSignificant :: M.HashMap Comparison [FETResult]
---                   -> Comparison
---                   -> [FETResult]
---                   -> M.HashMap Comparison [FETResult]
---     isSignificant hm k fr = M.insert k filteredList hm
---       where
---         filteredList = filter (\x -> pvalue x < correctedCutoff) fr
---         correctedCutoff = 0.05 / fromIntegral numberOfComparisons
---         numberOfComparisons = length fr
---
---
---
+-- generateListOfAllComparisons
