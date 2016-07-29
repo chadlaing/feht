@@ -175,13 +175,14 @@ getComparisonList :: Table
                   -> [Comparison]
 getComparisonList t (mc1, mxs1) (mc2, mxs2)
     | unMetaCategory mc1 == "allbut" = getAllPermutations t mm1 mm2
-    | unMetaCategory mc2 == "allbut" = error "Please specify a group two category"
+    | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
     | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
   where
     mm1 = (mc1, mxs1)
     mm2 = (mc2, mxs2)
     cg1 = filterTable t mc1 FilterCategory mxs1
     cg2 = filterTable t mc2 FilterCategory mxs2
+    cg2' = filterTable t mc1 AllButCategory mxs1
 
 
 -- filterTable metadataTable groupOneCategory FilterCategory groupOneValues

@@ -167,7 +167,7 @@ filterTable t mc ft mv = case ft of
     filterFunc' :: MetaHash
                 -> Bool
     filterFunc' mh' = case M.lookup mc mh' of
-        Just v' -> or $ fmap (/= v') mv
+        Just v' -> and $ fmap (/= v') mv
         Nothing -> False
 
 
