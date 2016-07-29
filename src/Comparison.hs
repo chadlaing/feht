@@ -19,8 +19,7 @@ import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
 import           FET
 import           Table
-import           Prelude                    (fromIntegral, length, (++),(+), (-),
-                                             (/), error)
+import           Prelude                    (fromIntegral, length, (++),(+), (-), undefined, (/), error)
 import           Text.Show
 --
 --
@@ -98,8 +97,8 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
     formatFETResult xs c fr = newComparison ++ xs
       where
        newComparison = newHeader:allResults
-       groupOneDescription = getAllMetaValue $ compGroup1 c
-       groupTwoDescription = getAllMetaValue $ compGroup2 c
+       groupOneDescription = BS.intercalate (BS.singleton ' ') . fmap unMetaValue . getAllMetaValue $ compGroup1 c
+       groupTwoDescription = BS.intercalate (BS.singleton ' ') . fmap unMetaValue . getAllMetaValue $ compGroup2 c
        groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
        newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
        allResults = foldl' formatSingleFET [] fr
@@ -122,26 +121,23 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
 --Get the values of the HoH, get unique elements, then combine into single
 --ByteString
 getAllMetaValue :: Table
-                -> BS.ByteString
-getAllMetaValue t = BS.intercalate (BS.singleton ' ') finalList
+                -> [MetaValue]
+getAllMetaValue t = foldl' getValueList [] allCategories
   where
     allMetaHash = M.elems t
-    allCategories = nub . concatMap M.keys $ allMetaHash
-    finalList = foldl' getValueList [] allCategories
+    allCategories = getAllCategoriesFromTable t
+    getValueList :: [MetaValue]
+                 -> MetaCategory
+                 -> [MetaValue]
+    getValueList xs m = nub $ foldl' gvl [] allMetaHash
       where
-        getValueList :: [BS.ByteString]
-                     -> MetaCategory
-                     -> [BS.ByteString]
-        getValueList xs m = x:xs
-          where
-            x = BS.intercalate (BS.singleton ':') [unMetaCategory m, stringOfValues]
-            stringOfValues = BS.intercalate (BS.singleton ',') $ nub allValues
-            allValues = foldl' gvl [] allMetaHash
-              where
-                gvl :: [BS.ByteString]
-                    -> MetaHash
-                    -> [BS.ByteString]
-                gvl xs mh = unMetaValue (fromMaybe (error "MetaCategory does not exist") (M.lookup m mh)):xs
+--         x = BS.intercalate (BS.singleton ':') [unMetaCategory m, stringOfValues]
+--         stringOfValues = BS.intercalate (BS.singleton ',') $ nub allValues
+--         allValues = foldl' gvl [] allMetaHash
+        gvl :: [MetaValue]
+            -> MetaHash
+            -> [MetaValue]
+        gvl xs mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs
 
 
 filterComparisonsByPValue :: FETResultHash
@@ -160,4 +156,16 @@ filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
 
 
 
--- generateListOfAllComparisons
+generateListOfAllComparisons :: Table
+                             -> [Comparison]
+generateListOfAllComparisons t = undefined
+  where
+    allCategories = getAllCategoriesFromTable t
+
+
+
+getAllCategoriesFromTable :: Table
+                          -> [MetaCategory]
+getAllCategoriesFromTable t = M.keys $ fromMaybe (error "Genome does not exist") (M.lookup singleGenome t)
+  where
+    singleGenome = head . M.keys $ t
