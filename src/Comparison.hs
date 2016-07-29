@@ -97,8 +97,8 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
     formatFETResult xs c fr = newComparison ++ xs
       where
        newComparison = newHeader:allResults
-       groupOneDescription = BS.intercalate (BS.singleton ',') . fmap unMetaValue . getAllMetaValue $ compGroup1 c
-       groupTwoDescription = BS.intercalate (BS.singleton ',') . fmap unMetaValue . getAllMetaValue $ compGroup2 c
+       groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
+       groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
        groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
        newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
        allResults = foldl' formatSingleFET [] fr
@@ -117,21 +117,37 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
                           ,BS.pack . show . pvalue $ fr'
                           ]
 
+
+
+lineFromMetaMatch :: [MetaMatch]
+                  -> BS.ByteString
+lineFromMetaMatch = foldl' makeLine ""
+  where
+    makeLine :: BS.ByteString
+             -> MetaMatch
+             -> BS.ByteString
+    makeLine bs (MetaCategory mc, xs) = BS.intercalate " " [bs, newLine]
+      where
+        newLine = BS.append (BS.append mc ":") mValues
+        mValues = BS.intercalate ","  (fmap unMetaValue xs)
+
+
 --Table is Hash of Hash
 --Get the values of the HoH, get unique elements, then combine into single
 --ByteString
+type MetaMatch = (MetaCategory, [MetaValue])
 getAllMetaValue :: Table
-                -> [MetaValue]
+                -> [MetaMatch]
 getAllMetaValue t = foldl' getValueList [] allCategories
   where
     allMetaHash = M.elems t
     allCategories = getAllCategoriesFromTable t
-    getValueList :: [MetaValue]
+    getValueList :: [MetaMatch]
                  -> MetaCategory
-                 -> [MetaValue]
-    getValueList xs m = x ++ xs
+                 -> [MetaMatch]
+    getValueList xs m = x:xs
       where
-        x = nub $ foldl' gvl [] allMetaHash
+        x = (m , nub $ foldl' gvl [] allMetaHash)
         gvl :: [MetaValue]
             -> MetaHash
             -> [MetaValue]
@@ -153,13 +169,23 @@ filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
         numberOfComparisons = length fr
 
 
-
-generateListOfAllComparisons :: Table
-                             -> [Comparison]
-generateListOfAllComparisons t = undefined
-  where
-    allCategories = getAllCategoriesFromTable t
-
+--
+-- getListOfAllComparisons :: Table
+--                         -> [Comparison]
+-- getListOfAllComparisons = M.foldl' getAllValueComps [] allCategories
+--   where
+--     allCategories = getAllCategoriesFromTable t
+--
+-- getAllValueComps :: [Comparison]
+--                  -> MetaHash
+--
+-- generateListOfAllComparisons' [] allCategories
+--
+--     generateListOfAllComparisons' :: [Comparison]
+--                                   -> [MetaCategory]
+--                                   -> [Comparison]
+--     generateListOfAllComparisons' cs [] = cs
+--     generateListOfAllComparisons' cs (x:xs) = generateListOfAllComparisons' cs xs
 
 
 getAllCategoriesFromTable :: Table

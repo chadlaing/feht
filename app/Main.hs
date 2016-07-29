@@ -7,6 +7,7 @@ import           Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Eq
 import           Data.Function
+import           Data.List
 import           Data.Functor
 import           Data.Maybe
 import           Data.String
@@ -25,9 +26,14 @@ import           Data.List                  (zip)
 data UserInput = UserInput
     {info      :: FilePath
     ,datafile  :: FilePath
+    ,one  :: String
+    ,two  :: String
     ,mode :: String
     ,delimiter :: String
     } deriving (Data, Typeable, Show, Eq)
+
+
+
 
 --note, to use a tab character, one needs to enter a literal tab on the command
 --line. Eg. delimiter="     "
@@ -35,6 +41,8 @@ data UserInput = UserInput
 userInput :: Mode (CmdArgs UserInput)
 userInput =  cmdArgsMode UserInput
     {info = def &= help "File of genome metadata information"
+    ,one = "allbut" &= help "Name and list of meta values for group one"
+    ,two = "allbut" &= help "Name and list of meta values for group two"
     ,datafile = def &= help "File of binary or snp data"
     ,mode = def &= help "mode of program, either 'binary', or 'snp' "
     ,delimiter = "\t" &= help "Delimiter used for info and data files"
@@ -44,6 +52,20 @@ userInput =  cmdArgsMode UserInput
 main :: IO ()
 main = do
     userArgs <- cmdArgsRun userInput
+    let onexs = words $ one userArgs
+    let twoxs = words $ two userArgs
+    let groupOneCategory = MetaCategory $ BS.pack $ head onexs
+    let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
+    let groupOneValues = fmap (MetaValue . BS.pack) $ tail onexs
+    let groupTwoValues = fmap (MetaValue . BS.pack) $ tail twoxs
+
+
+    print $ one userArgs
+    print groupOneCategory
+    print groupTwoCategory
+    print groupOneValues
+    print groupTwoValues
+
 
     --let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
@@ -78,8 +100,21 @@ main = do
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
 
-    let testGroupOne = filterTable metadataTable (MetaCategory "SourceState") FilterCategory [MetaValue "QC"]
-    let testGroupTwo = filterTable metadataTable (MetaCategory "SourceState") AllButCategory [MetaValue "QC"]
+--     let groupOneFilter = if group1 == "allbut"
+--                             then error "'--one' must be specified"
+--                             else FilterCategory
+--
+--
+--     let groupTwoFilter = if group2 == "allbut"
+--                             then AllButCategory
+--                             else FilterCategory
+--
+--     let finalGroup2 = if group2 == "allbut"
+--                             then group1
+--                             else group2
+
+    let testGroupOne = filterTable metadataTable groupOneCategory FilterCategory groupOneValues
+    let testGroupTwo = filterTable metadataTable groupTwoCategory FilterCategory groupTwoValues
     let testComp = calculateFetFromComparison
                     Comparison{compGroup1 = testGroupOne
                               ,compGroup2 = testGroupTwo}
