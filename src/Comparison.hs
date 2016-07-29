@@ -163,7 +163,9 @@ filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
                   -> Comparison
                   -> [FETResult]
                   -> FETResultHash
-    isSignificant hm k fr = M.insert k filteredList hm
+    isSignificant hm k fr = if null filteredList
+                                then hm
+                                else M.insert k filteredList hm
       where
         filteredList = filter (\x -> pvalue x < correctedCutoff) fr
         correctedCutoff = 0.05 / fromIntegral numberOfComparisons
