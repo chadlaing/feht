@@ -97,8 +97,8 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
     formatFETResult xs c fr = newComparison ++ xs
       where
        newComparison = newHeader:allResults
-       groupOneDescription = BS.intercalate (BS.singleton ' ') . fmap unMetaValue . getAllMetaValue $ compGroup1 c
-       groupTwoDescription = BS.intercalate (BS.singleton ' ') . fmap unMetaValue . getAllMetaValue $ compGroup2 c
+       groupOneDescription = BS.intercalate (BS.singleton ',') . fmap unMetaValue . getAllMetaValue $ compGroup1 c
+       groupTwoDescription = BS.intercalate (BS.singleton ',') . fmap unMetaValue . getAllMetaValue $ compGroup2 c
        groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
        newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
        allResults = foldl' formatSingleFET [] fr
@@ -129,11 +129,9 @@ getAllMetaValue t = foldl' getValueList [] allCategories
     getValueList :: [MetaValue]
                  -> MetaCategory
                  -> [MetaValue]
-    getValueList xs m = nub $ foldl' gvl [] allMetaHash
+    getValueList xs m = x ++ xs
       where
---         x = BS.intercalate (BS.singleton ':') [unMetaCategory m, stringOfValues]
---         stringOfValues = BS.intercalate (BS.singleton ',') $ nub allValues
---         allValues = foldl' gvl [] allMetaHash
+        x = nub $ foldl' gvl [] allMetaHash
         gvl :: [MetaValue]
             -> MetaHash
             -> [MetaValue]
