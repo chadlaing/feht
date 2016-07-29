@@ -93,12 +93,12 @@ main = do
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
     let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
 
-    let testComp = calculateFetFromComparison (head cl) geneVectorMap
+    let compList = fmap (calculateFetFromComparison geneVectorMap) cl
 
     --filter the results by pvalue
     --simple Bonferroni correction
-    let filteredGroupComps = filterComparisonsByPValue testComp
-    let tableOfComps = formatFETResultHashAsTable filteredGroupComps
+    let filteredGroupComps = fmap filterComparisonsByPValue compList
+    let tableOfComps = concatMap formatFETResultHashAsTable filteredGroupComps
     mapM_ BS.putStrLn tableOfComps
 
     putStrLn "Done"

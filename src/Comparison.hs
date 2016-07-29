@@ -33,10 +33,10 @@ instance Hashable Comparison
 
 type GeneVectorHash = M.HashMap GeneName (V.Vector Char)
 type FETResultHash = M.HashMap Comparison [FETResult]
-calculateFetFromComparison :: Comparison
-                           -> GeneVectorHash
+calculateFetFromComparison :: GeneVectorHash
+                           -> Comparison
                            -> FETResultHash
-calculateFetFromComparison c gvh = M.insert c allFetResults M.empty
+calculateFetFromComparison gvh c = M.insert c allFetResults M.empty
   where
     allFetResults :: [FETResult]
     allFetResults = M.foldlWithKey' calcFet [] gvh
