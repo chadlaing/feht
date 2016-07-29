@@ -91,26 +91,9 @@ main = do
                             _ -> error "Incorrect mode given, requires `snp` or `binary`"
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
+    let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
 
---     let groupOneFilter = if group1 == "allbut"
---                             then error "'--one' must be specified"
---                             else FilterCategory
---
---
---     let groupTwoFilter = if group2 == "allbut"
---                             then AllButCategory
---                             else FilterCategory
---
---     let finalGroup2 = if group2 == "allbut"
---                             then group1
---                             else group2
-
-    let testGroupOne = filterTable metadataTable groupOneCategory FilterCategory groupOneValues
-    let testGroupTwo = filterTable metadataTable groupTwoCategory FilterCategory groupTwoValues
-    let testComp = calculateFetFromComparison
-                    Comparison{compGroup1 = testGroupOne
-                              ,compGroup2 = testGroupTwo}
-                    geneVectorMap
+    let testComp = calculateFetFromComparison (head cl) geneVectorMap
 
     --filter the results by pvalue
     --simple Bonferroni correction

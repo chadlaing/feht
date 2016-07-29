@@ -19,7 +19,7 @@ import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
 import           FET
 import           Table
-import           Prelude                    (fromIntegral, length, (++),(+), (-), undefined, (/), error)
+import           Prelude                    (otherwise, fromIntegral, length, (++),(+), (-), undefined, (/), error)
 import           Text.Show
 --
 --
@@ -168,6 +168,24 @@ filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
         correctedCutoff = 0.05 / fromIntegral numberOfComparisons
         numberOfComparisons = length fr
 
+
+getComparisonList :: Table
+                  -> MetaMatch
+                  -> MetaMatch
+                  -> [Comparison]
+getComparisonList t (mc1, mxs1) (mc2, mxs2)
+    | unMetaCategory mc1 == "allbut" = getAllPermutations t mm1 mm2
+    | unMetaCategory mc2 == "allbut" = error "Please specify a group two category"
+    | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+  where
+    mm1 = (mc1, mxs1)
+    mm2 = (mc2, mxs2)
+    cg1 = filterTable t mc1 FilterCategory mxs1
+    cg2 = filterTable t mc2 FilterCategory mxs2
+
+
+-- filterTable metadataTable groupOneCategory FilterCategory groupOneValues
+getAllPermutations = undefined
 
 --
 -- getListOfAllComparisons :: Table
