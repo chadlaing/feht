@@ -21,6 +21,7 @@ import           FET
 import           Table
 import           Prelude                    (otherwise, fromIntegral, length, (++),(+), (-), undefined, (/), error)
 import           Text.Show
+import           Safe (tailDef)
 --
 --
 data Comparison = Comparison{compGroup1  :: Table
@@ -100,7 +101,7 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
        groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
        groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
        groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
-       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "GroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
+       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
        allResults = foldl' formatSingleFET [] fr
          where
            formatSingleFET :: [BS.ByteString]
@@ -128,7 +129,7 @@ lineFromMetaMatch = foldl' makeLine ""
              -> BS.ByteString
     makeLine bs (MetaCategory mc, xs) = BS.intercalate " " [bs, newLine]
       where
-        newLine = BS.append (BS.append mc ":") mValues
+        newLine = BS.concat [mc, ":", mValues]
         mValues = BS.intercalate ","  (fmap unMetaValue xs)
 
 
@@ -174,7 +175,7 @@ getComparisonList :: Table
                   -> MetaMatch
                   -> [Comparison]
 getComparisonList t (mc1, mxs1) (mc2, mxs2)
-    | unMetaCategory mc1 == "allbut" = getAllPermutations t mm1 mm2
+    | unMetaCategory mc1 == "allbut" = foldl' getAllPermutations [] (getAllMetaValue t)
     | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
     | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
   where
@@ -183,28 +184,29 @@ getComparisonList t (mc1, mxs1) (mc2, mxs2)
     cg1 = filterTable t mc1 FilterCategory mxs1
     cg2 = filterTable t mc2 FilterCategory mxs2
     cg2' = filterTable t mc1 AllButCategory mxs1
-
-
--- filterTable metadataTable groupOneCategory FilterCategory groupOneValues
-getAllPermutations = undefined
-
---
--- getListOfAllComparisons :: Table
---                         -> [Comparison]
--- getListOfAllComparisons = M.foldl' getAllValueComps [] allCategories
---   where
---     allCategories = getAllCategoriesFromTable t
---
--- getAllValueComps :: [Comparison]
---                  -> MetaHash
---
--- generateListOfAllComparisons' [] allCategories
---
---     generateListOfAllComparisons' :: [Comparison]
---                                   -> [MetaCategory]
---                                   -> [Comparison]
---     generateListOfAllComparisons' cs [] = cs
---     generateListOfAllComparisons' cs (x:xs) = generateListOfAllComparisons' cs xs
+    getAllPermutations :: [Comparison]
+                       -> MetaMatch
+                       -> [Comparison]
+    getAllPermutations cs (mc', mxs') = foldl' getCatPerms cs mxs'
+      where
+        getCatPerms :: [Comparison]
+                    -> MetaValue
+                    -> [Comparison]
+        getCatPerms cs' mv = cvs:permList cs' (takeWhile (/= mv) mxs')
+          where
+            cvs = Comparison {compGroup1 = cg1, compGroup2 = cvs2}
+            cvs2 = filterTable t mc' AllButCategory [mv]
+            cg1 = filterTable t mc' FilterCategory [mv]
+            permList :: [Comparison]
+                     -> [MetaValue]
+                     -> [Comparison]
+            permList cs'' [] = cs''
+            permList cs'' (x:xs) = permList (c:cs'') xs
+              where
+                c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
+                cg2'' = filterTable t mc' FilterCategory [x]
+            -- c is the comparison given the two values
+            -- cvs is the comparison vs the value and all others
 
 
 getAllCategoriesFromTable :: Table
