@@ -59,14 +59,6 @@ main = do
     let groupOneValues = fmap (MetaValue . BS.pack) $ tail onexs
     let groupTwoValues = fmap (MetaValue . BS.pack) $ tail twoxs
 
-
-    print $ one userArgs
-    print groupOneCategory
-    print groupTwoCategory
-    print groupOneValues
-    print groupTwoValues
-
-
     --let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
     let uMode = mode userArgs
