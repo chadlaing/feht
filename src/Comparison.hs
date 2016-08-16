@@ -100,7 +100,7 @@ formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
        newComparison = newHeader:allResults
        groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
        groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
-       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroubTwo (-)\tpValue"
+       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue"
        newHeader = BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
        allResults = foldl' formatSingleFET [] fr
          where
