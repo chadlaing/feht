@@ -21,7 +21,7 @@ import           Data.String
 import qualified Data.Time.Calendar         as C
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (Integer, error, (+), undefined)
+import           Prelude                    (Integer, error, undefined, (+))
 import           Text.Read
 import           Text.Show
 
@@ -31,7 +31,7 @@ newtype MetaCategory = MetaCategory {unMetaCategory :: BS.ByteString} deriving (
 newtype MetaValue = MetaValue {unMetaValue :: BS.ByteString} deriving (Eq, Show, Ord, Generic)
 
 data GenomeInfo =
-    GenomeInfo{genomeName :: BS.ByteString
+    GenomeInfo{genomeName   :: BS.ByteString
               ,columnNumber :: Int} deriving (Show, Eq, Ord, Generic)
 
 

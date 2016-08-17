@@ -1,31 +1,33 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Comparison where
 
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Char
 import           Data.Eq
-import           Data.Int
 import           Data.Foldable
-import           Data.Functor
 import           Data.Function
+import           Data.Functor
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
+import           Data.Int
 import           Data.List
 import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
-import           GHC.Generics               (Generic)
 import           FET
+import           GHC.Generics               (Generic)
+import           Prelude                    (error, fromIntegral, length,
+                                             otherwise, undefined, (+), (++),
+                                             (-), (/))
+import           Safe                       (tailDef)
 import           Table
-import           Prelude                    (otherwise, fromIntegral, length, (++),(+), (-), undefined, (/), error)
 import           Text.Show
-import           Safe (tailDef)
 --
 --
-data Comparison = Comparison{compGroup1  :: Table
-                            ,compGroup2  :: Table
+data Comparison = Comparison{compGroup1 :: Table
+                            ,compGroup2 :: Table
                             }deriving (Show, Eq, Generic)
 instance Hashable Comparison
 
