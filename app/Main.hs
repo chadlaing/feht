@@ -1,38 +1,35 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
-import           Prelude                    (error)
 import           Comparison
+import           Control.Applicative
 import           Control.Monad
+import           Data.Bool
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Eq
 import           Data.Function
-import           Data.List
 import           Data.Functor
+import qualified Data.HashMap.Strict        as M
+import           Data.List
 import           Data.Maybe
 import           Data.String
-import           Data.Bool
+import           Prelude                    (error)
 import           System.Console.CmdArgs
 import           System.IO
 import           Table
 import           Text.Show
---import Data.Char
-import qualified Data.HashMap.Strict        as M
---import qualified Data.Vector.Unboxed        as V
-import           Data.List                  (zip)
 
 
 --for command line processing using cmdargs
 data UserInput = UserInput
     {info      :: FilePath
     ,datafile  :: FilePath
-    ,one  :: String
-    ,two  :: String
-    ,mode :: String
+    ,one       :: String
+    ,two       :: String
+    ,mode      :: String
     ,delimiter :: String
+    ,mtc       :: String
     } deriving (Data, Typeable, Show, Eq)
-
-
 
 
 --note, to use a tab character, one needs to enter a literal tab on the command
@@ -46,6 +43,7 @@ userInput =  cmdArgsMode UserInput
     ,datafile = def &= help "File of binary or snp data"
     ,mode = def &= help "mode of program, either 'binary', or 'snp' "
     ,delimiter = "\t" &= help "Delimiter used for info and data files"
+    ,mtc = "Bonferroni" &= help "Multiple testing correction, 'bonferroni', 'none'"
     }
 
 
@@ -56,8 +54,8 @@ main = do
     let twoxs = words $ two userArgs
     let groupOneCategory = MetaCategory $ BS.pack $ head onexs
     let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
-    let groupOneValues = fmap (MetaValue . BS.pack) $ tail onexs
-    let groupTwoValues = fmap (MetaValue . BS.pack) $ tail twoxs
+    let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
+    let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
 
     --let metadata = getListOfMetadata $ zip [1..] uMetadata
     let (delim:_) = delimiter userArgs
@@ -92,13 +90,18 @@ main = do
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
     let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
+    --print cl
 
     let compList = fmap (calculateFetFromComparison geneVectorMap) cl
 
-    --filter the results by pvalue
+    --filter the results by pvalue if selected
     --simple Bonferroni correction
-    let filteredGroupComps = fmap filterComparisonsByPValue compList
-    let tableOfComps = concatMap formatFETResultHashAsTable filteredGroupComps
+    let finalGroupComps = case mtc userArgs of
+                            "Bonferroni" -> fmap filterComparisonsByPValue compList
+                            "none" -> compList
+                            _ -> error "Incorrect multiple testing correction supplied"
+
+    let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
     mapM_ BS.putStrLn tableOfComps
 
     putStrLn "Done"
