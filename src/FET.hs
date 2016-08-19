@@ -8,10 +8,13 @@ import           Data.Int
 import           Data.List
 import           Data.Ord
 import           Prelude                                (Double, fromIntegral,
-                                                         (+))
-import           Statistics.Distribution                (cumulative,
+                                                         (*), (+), (-), (/),
+                                                         (^))
+import           Statistics.Distribution                (complCumulative,
+                                                         cumulative,
                                                          probability)
-import           Statistics.Distribution.Hypergeometric (hypergeometric)
+import           Statistics.Distribution.ChiSquared
+import           Statistics.Distribution.Hypergeometric
 import           Text.Show
 
 --the Fisher's exact test can be computed from the hypergeometric distribution
@@ -28,9 +31,9 @@ import           Text.Show
 -- k elements chosen from a population of l, with m elements of one type,
 -- and l-m of the other (all are positive integers).
 -- In our case:
--- m is the sum of "has gene" instances, so 9
+-- m is the sum of "has factor" instances, so 9
 -- l is the total population size, so 17
--- k is the sum of a particular serotype, so 7
+-- k is the sum of a particular group, so 7 for Group 1
 -- let d = distribution 9 17 7
 -- This gives us the distribution, but we need to test the probability
 -- that the presence of this gene is statistically different, using the two-tail
@@ -49,6 +52,26 @@ import           Text.Show
 -- The twoTailValue is calculated by generating all of the probabilities for
 -- our sample, filtering the ones that have a probability too large, and
 -- summing the remaining values.
+--
+-- For a total number of observations greater than 1000, we use the Chi Square
+-- test, as the FET returns NaN.
+-- ChiSqr statistic  for
+--           Group 1 | Group 2
+--          -------------------
+-- has gene |   2    |    7
+-- no gene  |   5    |    3
+--          -------------------
+-- is [(2*3)-(5*7)]^2 * (2+7+5+3) / (2+7)(5+3)(7+3)(2+5)
+-- With 1 degree of freedom, we can calculate the Chi Square distribution
+-- with chiSquared 1 from Statistics.Distribution
+-- To determine the P value of a Chi Square statistic, we use the
+-- complCumulative function and the
+-- Chi Square distribution with 1 degree of freedom.
+-- For Chi Square, the one-tail is simply half the two-tail
+-- Statistics.Test.ChiSquared only return "Significant" or "NotSignificant"
+-- and we wanted the actual P-value, hence the function.
+-- Likewise there is no Statistics.Test.FET
+
 
 newtype GroupOneA = GroupOneA { unGroupOneA :: Int } deriving (Eq, Show)
 newtype GroupOneB = GroupOneB { unGroupOneB :: Int } deriving (Eq, Show)
@@ -77,10 +100,16 @@ fet (FETName fName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB g
         OneTail -> theResult{pvalue = cumD}
         TwoTail -> theResult{pvalue = twoTailValue}
   where
-    cumD = cumulative d $ fromIntegral goa
+    cumD = if l >= 1000
+            then chiP / 2
+            else cumulative d $ fromIntegral goa
     probX = probability d goa
-    twoTailValue = sum . filter (<= probX) . fmap (probability d) $ [0..k]
+    twoTailValue = if l >= 1000
+                      then chiP
+                      else sum . filter (<= probX) . fmap (probability d) $ [0..k]
     d = hypergeometric m l k
+    chiP = complCumulative d' $ chiSquare goa gob gta gtb
+    d' = chiSquared 1
     m = goa + gta
     l = m + gob + gtb
     k = goa + gob
@@ -92,5 +121,16 @@ fet (FETName fName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB g
                          ,fetName = fName
                          }
 
-
-
+chiSquare :: Int
+          -> Int
+          -> Int
+          -> Int
+          -> Double
+chiSquare a' b' c' d' = (x' * x' * (a + b + c + d)) /
+                        ((a+b) * (c+d) * (b+d) * (a+c))
+  where
+    x' = (a * d) - (b * c)
+    a = fromIntegral a'
+    b = fromIntegral b'
+    c = fromIntegral c'
+    d = fromIntegral d'
