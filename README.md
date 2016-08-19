@@ -12,7 +12,7 @@ If you are on Windows and prefer a GUI, check out [GenomeFisher](https://bitbuck
 
 The program takes command line arguments, 3 of which are required. For example:
 
-    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode="snp.txt" > output.txt
+    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode="snp" > output.txt
  
 Files can be either tab-delimited, or comma-delimited. The default is tab, but it can be changed by including
  
