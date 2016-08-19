@@ -25,7 +25,7 @@ The datafile is the actual data, where the column headers denote the subject nam
  
 If the mode is set as “snp”, using:
  
-    --mode="snp
+    --mode="snp"
  
  then the factors are assumed to be genetic data of A, C, T, or G, and each of A vs not-A, C vs not-C, T vs not T, G vs not-G are computed, and (_c, _t, _g, _a) is appended to the factor name in the results, to denote the comparison that was significant.
  
