@@ -39,4 +39,4 @@ The options given to --one must be quoted, and the first word must contain no sp
  
 The same applies to specifying arguments to `--two`, and if specified in addition to `--one`, only those two groups will be compared. For example:
 
-    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode="snp" --one="Province AB NB" --two="SourceState NS QC OE" > output.txt
+    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode="snp" --one="Province AB NB" --two="Province NS QC OE" > output.txt
