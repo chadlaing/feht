@@ -2,6 +2,9 @@
 
 A commandline program to automatically identify markers predictive of groups. Can be used with binary data, genomic (single nucleotide variant) data, or arbitrary character data.
 
+
+If you are on Windows and prefer a GUI, check out [GenomeFisher](https://bitbucket.org/peterk87/genomefisher/wiki/Home)
+
 ## Quick Start
 
 
