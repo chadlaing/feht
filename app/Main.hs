@@ -14,7 +14,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.String
 import           Prelude                    (error)
-import           System.Console.CmdArgs
+import           System.Console.CmdArgs.Implicit
 import           System.IO
 import           Table
 import           Text.Show
@@ -35,8 +35,8 @@ data UserInput = UserInput
 --note, to use a tab character, one needs to enter a literal tab on the command
 --line. Eg. delimiter="     "
 --do this via Ctrl-V<tab>
-userInput :: Mode (CmdArgs UserInput)
-userInput =  cmdArgsMode UserInput
+feht :: UserInput
+feht =  UserInput
     {info = def &= help "File of genome metadata information"
     ,one = "allbut" &= help "Name and list of meta values for group one"
     ,two = "allbut" &= help "Name and list of meta values for group two"
@@ -44,12 +44,17 @@ userInput =  cmdArgsMode UserInput
     ,mode = def &= help "mode of program, either 'binary', or 'snp' "
     ,delimiter = "\t" &= help "Delimiter used for info and data files"
     ,mtc = "Bonferroni" &= help "Multiple testing correction, 'bonferroni', 'none'"
-    }
+    } &=
+    program "feht" &=
+    summary "Predictive marker discovery for groups: binary data, genomic data (single nucleotide variants), and arbitrary character data." &=
+    details ["feht takes a table of character data, and a file of metadata, and produces markers that are predictive of groups", "", "    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode='snp' > output.txt"]
+
 
 
 main :: IO ()
 main = do
-    userArgs <- cmdArgsRun userInput
+    userArgs <- cmdArgs feht
+    userArgs <- cmdArgs feht
     let onexs = words $ one userArgs
     let twoxs = words $ two userArgs
     let groupOneCategory = MetaCategory $ BS.pack $ head onexs
@@ -90,7 +95,6 @@ main = do
 
     let geneVectorMap = getGeneVectorMap delim finalGenomeData
     let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
-    --print cl
 
     let compList = fmap (calculateFetFromComparison geneVectorMap) cl
 

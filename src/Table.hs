@@ -18,7 +18,6 @@ import           Data.List                  (zip, (++))
 import           Data.Maybe
 import           Data.Ord
 import           Data.String
-import qualified Data.Time.Calendar         as C
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
 import           Prelude                    (Integer, error, undefined, (+))
