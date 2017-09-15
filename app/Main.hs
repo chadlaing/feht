@@ -15,7 +15,7 @@ import           Data.Maybe
 import           Data.Semigroup             ((<>))
 import           Data.String
 import           Options.Applicative
-import           Prelude                    (error)
+import           Prelude                    (error, Char)
 import           System.IO
 import           Table
 import           Text.Show
@@ -27,8 +27,8 @@ data UserInput = UserInput
     ,datafile   :: FilePath
 --    ,one       :: String
 --    ,two       :: String
-    ,mode       :: String
     ,delimiter  :: String
+    ,mode       :: String
     ,correction :: String
     } deriving (Show, Eq)
 
@@ -49,12 +49,12 @@ feht = UserInput
   <*> strOption
       (long "delimiter"
       <> short 'l'
-      <> metavar "[',', '\\t' ...], DEFAULT='\\t'"
-      <> value "\t"
+      <> metavar "[',', '\\t' ...], DEFAULT=','"
+      <> value ","
       <> help "Delimiter used for both the metadata and data file")
   <*> strOption
       (long "mode"
-      <> short 'm'
+      <> short 'o'
       <> metavar "['binary', 'snp'], DEFAULT='binary'"
       <> value "binary"
       <> help "Mode for program data; either 'binary' or 'snp'")
@@ -66,23 +66,6 @@ feht = UserInput
       <> help "Multiple-testing correction to apply"
       )
 
---note, to use a tab character, one needs to enter a literal tab on the command
---line. Eg. delimiter="     "
---do this via Ctrl-V<tab>
---feht :: UserInput
---feht =  UserInput
---    {info = def &= help "File of genome metadata information"
---    ,one = "allbut" &= help "Name and list of meta values for group one"
---    ,two = "allbut" &= help "Name and list of meta values for group two"
---    ,datafile = def &= help "File of binary or snp data"
---    ,mode = def &= help "mode of program, either 'binary', or 'snp' "
---    ,delimiter = "\t" &= help "Delimiter used for info and data files"
---    ,mtc = "Bonferroni" &= help "Multiple testing correction, 'bonferroni', 'none'"
---    } &=
---    program "feht" &=
---    summary "Predictive marker discovery for groups: binary data, genomic data (single nucleotide variants), and arbitrary character data." &=
---    details ["feht takes a table of character data, and a file of metadata, and produces markers that are predictive of groups", "", "    ./feht --info=data/metadata.txt --datafile=data/data.tab --mode='snp' > output.txt"]
-
 opts :: ParserInfo UserInput
 opts = info (feht <**> helper)
   (fullDesc
@@ -92,12 +75,9 @@ opts = info (feht <**> helper)
 main :: IO ()
 main = do
   userArgs <- execParser opts
+  let (delim:_) = delimiter userArgs
+  let uMode = mode userArgs
   print userArgs
-  putStrLn "Done"
-
-
-
-
 
 --    let onexs = words $ one userArgs
 --    let twoxs = words $ two userArgs
@@ -106,38 +86,39 @@ main = do
 --    let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
 --    let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
 --
---    --let metadata = getListOfMetadata $ zip [1..] uMetadata
---    let (delim:_) = delimiter userArgs
---    let uMode = mode userArgs
---    --let delim = '\t'
---    --we want to split the strain information file into lines
---    --and then send a list of words for processing
---    infoFile <- BS.readFile $ info userArgs
+
 --
---    --before we assign any metadata info, we want the column positions for each
---    --of the genomes, to do this we read in the data file next
---    --read in the data table
---    dataFile <- BS.readFile $ datafile userArgs
---    let dataLines = BS.lines dataFile
---    --we only need the headers of the data table to map the names to columns
---    --the first column header is blank in the data table or not needed, as it
---    --is assumed the first column is gene data
---    let (genomeNames:genomeData) = dataLines
---    let (_:splitGenomeNames) = BS.split delim genomeNames
---
---    --create a hashMap of genomeName -> columnNumber
---    let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
---
---    --now we have all the information to fully populate the metadataInfo
---    let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.split delim) $ BS.lines infoFile
---
---    --if we have SNP data, we need to convert it into binary first
---    let finalGenomeData = case uMode of
---                            "binary" -> genomeData
---                            "snp" -> convertSnpToBinary delim genomeData
---                            _ -> error "Incorrect mode given, requires `snp` or `binary`"
---
---    let geneVectorMap = getGeneVectorMap delim finalGenomeData
+
+    --we want to split the strain information file into lines
+    --and then send a list of words for processing
+  infoFile <- BS.readFile $ metafile userArgs
+
+  --before we assign any metadata info, we want the column positions for each
+  --of the genomes, to do this we read in the data file next
+  --read in the data table
+  dataFile <- BS.readFile $ datafile userArgs
+  let dataLines = BS.lines dataFile
+  --we only need the headers of the data table to map the names to columns
+  --the first column header is blank in the data table or not needed, as it
+  --is assumed the first column is gene data
+  let (genomeNames:genomeData) = dataLines
+  let (_:splitGenomeNames) = BS.split delim genomeNames
+
+  --create a hashMap of genomeName -> columnNumber
+  let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
+
+  --now we have all the information to fully populate the metadataInfo
+  let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.split delim) $ BS.lines infoFile
+
+  --if we have SNP data, we need to convert it into binary first
+  let finalGenomeData = case mode userArgs of
+                          "binary" -> genomeData
+                          "snp" -> convertSnpToBinary delim genomeData
+                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
+
+  let geneVectorMap = getGeneVectorMap delim finalGenomeData
+
+  print geneVectorMap
 --    let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
 --
 --    let compList = fmap (calculateFetFromComparison geneVectorMap) cl
@@ -151,3 +132,5 @@ main = do
 --
 --    let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
 --    mapM_ BS.putStrLn tableOfComps
+--
+  putStrLn "Done"
