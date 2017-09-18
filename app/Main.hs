@@ -25,8 +25,8 @@ import           Text.Show
 data UserInput = UserInput
     {metafile   :: FilePath
     ,datafile   :: FilePath
---    ,one       :: String
---    ,two       :: String
+    ,one       :: String
+    ,two       :: String
     ,delimiter  :: String
     ,mode       :: String
     ,correction :: String
@@ -46,6 +46,14 @@ feht = UserInput
       <> short 'd'
       <> metavar "FILE"
       <> help "File of binary or single-nucleotide variant data")
+  <*> strOption
+      (long "one"
+      <> metavar "Group1Name Group1Item Group1Item Group1Item"
+      <> help "Group1 column name, followed by optional Group1 labels to include as part of the group")
+  <*> strOption
+      (long "two"
+      <> metavar "Group2Name Group2Item Group2Item Group2Item"
+      <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
   <*> strOption
       (long "delimiter"
       <> short 'l'
@@ -79,18 +87,15 @@ main = do
   let uMode = mode userArgs
   print userArgs
 
---    let onexs = words $ one userArgs
---    let twoxs = words $ two userArgs
---    let groupOneCategory = MetaCategory $ BS.pack $ head onexs
---    let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
---    let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
---    let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
---
+  let onexs = words $ one userArgs
+  let twoxs = words $ two userArgs
+  let groupOneCategory = MetaCategory $ BS.pack $ head onexs
+  let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
+  let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
+  let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
 
---
-
-    --we want to split the strain information file into lines
-    --and then send a list of words for processing
+  --we want to split the strain information file into lines
+  --and then send a list of words for processing
   infoFile <- BS.readFile $ metafile userArgs
 
   --before we assign any metadata info, we want the column positions for each
