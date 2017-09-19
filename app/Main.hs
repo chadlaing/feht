@@ -94,48 +94,57 @@ main = do
   let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
   let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
 
+  print groupOneCategory
+  print groupOneValues
+  print groupTwoCategory
+  print groupTwoValues
+
   --we want to split the strain information file into lines
   --and then send a list of words for processing
   infoFile <- BS.readFile $ metafile userArgs
 
   --before we assign any metadata info, we want the column positions for each
   --of the genomes, to do this we read in the data file next
-  --read in the data table
   dataFile <- BS.readFile $ datafile userArgs
   let dataLines = BS.lines dataFile
+
   --we only need the headers of the data table to map the names to columns
   --the first column header is blank in the data table or not needed, as it
   --is assumed the first column is gene data
   let (genomeNames:genomeData) = dataLines
-  let (_:splitGenomeNames) = BS.split delim genomeNames
-
+  print genomeNames
+  let splitGenomeNames = (BS.words . BS.unwords) $ BS.split delim genomeNames
+  print splitGenomeNames
   --create a hashMap of genomeName -> columnNumber
   let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
+  print nameColumnHash
 
   --now we have all the information to fully populate the metadataInfo
-  let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.split delim) $ BS.lines infoFile
-
+  let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
+  print metadataTable
   --if we have SNP data, we need to convert it into binary first
-  let finalGenomeData = case mode userArgs of
-                          "binary" -> genomeData
-                          "snp" -> convertSnpToBinary delim genomeData
-                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
+--  let finalGenomeData = case mode userArgs of
+--                          "binary" -> genomeData
+--                          "snp" ->
+--                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
+  let finalGenomeData = convertSnpToBinary delim genomeData
 
-  let geneVectorMap = getGeneVectorMap delim finalGenomeData
-
+  let geneVectorMap = getGeneVectorMap finalGenomeData
   print geneVectorMap
---    let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
+--  print geneVectorMap
+--  let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
+--  print cl
 --
---    let compList = fmap (calculateFetFromComparison geneVectorMap) cl
+--  let compList = fmap (calculateFetFromComparison geneVectorMap) cl
 --
---    --filter the results by pvalue if selected
---    --simple Bonferroni correction
---    let finalGroupComps = case mtc userArgs of
---                            "Bonferroni" -> fmap filterComparisonsByPValue compList
---                            "none" -> compList
---                            _ -> error "Incorrect multiple testing correction supplied"
+--  --filter the results by pvalue if selected
+--  --simple Bonferroni correction
+--  let finalGroupComps = case correction userArgs of
+--                          "bonferroni" -> fmap filterComparisonsByPValue compList
+--                          "none" -> compList
+--                          _ -> error "Incorrect multiple testing correction supplied"
 --
---    let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
---    mapM_ BS.putStrLn tableOfComps
---
+--  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
+--  mapM_ BS.putStrLn tableOfComps
+
   putStrLn "Done"
