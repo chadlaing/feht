@@ -110,8 +110,8 @@ convertSnpLineToBinary :: Char
                        -> [BinaryTuple]
 convertSnpLineToBinary d' xs sl = a:t:c:g:xs
   where
-    (geneName:listWithoutGeneName) = (BS.words. BS.unwords . BS.split d') sl
-    lineWithoutGeneName = BS.unwords listWithoutGeneName
+    (geneName:listWithoutGeneName) = BS.split d' sl
+    lineWithoutGeneName = BS.concat . BS.words . BS.unwords $ listWithoutGeneName
     a = (BS.concat [geneName, "_a"], BS.map (replaceChar 'A') lineWithoutGeneName)
     t = (BS.concat [geneName, "_t"], BS.map (replaceChar 'T') lineWithoutGeneName)
     c = (BS.concat [geneName, "_c"], BS.map (replaceChar 'C') lineWithoutGeneName)
