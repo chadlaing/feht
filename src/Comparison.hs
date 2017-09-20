@@ -18,7 +18,7 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (error, fromIntegral, length,
+import           Prelude                    (Double, error, fromIntegral, length,
                                              otherwise, undefined, (+), (++),
                                              (-), (/))
 import           Safe                       (tailDef)
@@ -32,37 +32,73 @@ data Comparison = Comparison{compGroup1 :: Table
 instance Hashable Comparison
 
 
+data ComparisonResult = MkComparisonResult
+  {compFET :: FETResult
+  ,compRatio :: Double
+  }
 
+-- generate fet
+-- generate compRatio
+-- create ComparisonResult
+-- add to hash
 
 type GeneVectorHash = M.HashMap GeneName (V.Vector Char)
-type FETResultHash = M.HashMap Comparison [FETResult]
-calculateFetFromComparison :: GeneVectorHash
-                           -> Comparison
-                           -> FETResultHash
-calculateFetFromComparison gvh c = M.insert c allFetResults M.empty
-  where
-    allFetResults :: [FETResult]
-    allFetResults = M.foldlWithKey' calcFet [] gvh
-      where
-        calcFet :: [FETResult]
-                -> GeneName
-                -> V.Vector Char
-                -> [FETResult]
-        calcFet xs gn vc = theResult:xs
-          where
-            goColumnList = getListOfColumns $ compGroup1 c
-            gtColumnList = getListOfColumns $ compGroup2 c
-            got = M.size $ compGroup1 c
-            gtt = M.size $ compGroup2 c
-            goa = countCharInVectorByIndices vc '1' goColumnList
-            gta = countCharInVectorByIndices vc '1' gtColumnList
-            gob = countCharInVectorByIndices vc '0' goColumnList
-            gtb = countCharInVectorByIndices vc '0' gtColumnList
---            gob = got - goa
---            gtb = gtt - gta
-            theResult = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
-                (GroupTwoB gtb) TwoTail
+type ComparisonResultHash = M.HashMap Comparison [ComparisonResult]
 
+calculateFETFromGene :: GeneName
+                     -> V.Vector Char
+                     -> FETResult
+calculateFETFromGene gn vc = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
+  where
+    goa = countCharInVectorByIndices vc '1' goColumnList
+    gta = countCharInVectorByIndices vc '1' gtColumnList
+    gob = countCharInVectorByIndices vc '0' goColumnList
+    gtb = countCharInVectorByIndices vc '0' gtColumnList
+
+
+calculateRatio :: FETResult
+               -> Double
+calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
+  where
+    goa = fromIntegral $ groupOneA fetr
+    gob = fromIntegral $ groupOneB fetr
+    gta = fromIntegral $ groupTwoA fetr
+    gtb = fromIntegral $ groupTwoB fetr
+
+
+generateResultHash :: GeneVectorHash
+                    -> Comparison
+                    -> ComparisonResultHash
+generateResultHash = undefined
+
+
+--calculateFetFromComparison :: GeneVectorHash
+--                           -> Comparison
+--                           -> FETResultHash
+--calculateFetFromComparison gvh c = M.insert c allFetResults M.empty
+--  where
+--    allFetResults :: [FETResult]
+--    allFetResults = M.foldlWithKey' calcFet [] gvh
+--      where
+--        calcFet :: [FETResult]
+--                -> GeneName
+--                -> V.Vector Char
+--                -> [FETResult]
+--        calcFet xs gn vc = theResult:xs
+--          where
+--            goColumnList = getListOfColumns $ compGroup1 c
+--            gtColumnList = getListOfColumns $ compGroup2 c
+--            got = M.size $ compGroup1 c
+--            gtt = M.size $ compGroup2 c
+--            goa = countCharInVectorByIndices vc '1' goColumnList
+--            gta = countCharInVectorByIndices vc '1' gtColumnList
+--            gob = countCharInVectorByIndices vc '0' goColumnList
+--            gtb = countCharInVectorByIndices vc '0' gtColumnList
+----            gob = got - goa
+----            gtb = gtt - gta
+--            theResult = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
+--                (GroupTwoB gtb) TwoTail
+--
 
 
 getListOfColumns :: Table
@@ -90,37 +126,37 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
           else rt
 
 
-
-formatFETResultHashAsTable :: FETResultHash
-                           -> [BS.ByteString]
-formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
-  where
-    formatFETResult :: [BS.ByteString]
-                    -> Comparison
-                    -> [FETResult]
-                    -> [BS.ByteString]
-    formatFETResult xs c fr = newComparison ++ xs
-      where
-       newComparison = newHeader:allResults
-       groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
-       groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
-       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue"
-       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
-       allResults = foldl' formatSingleFET [] fr
-         where
-           formatSingleFET :: [BS.ByteString]
-                           -> FETResult
-                           -> [BS.ByteString]
-           formatSingleFET xs fr' = newFet:xs
-             where
-                newFet = BS.intercalate (BS.singleton '\t')
-                          [fetName fr'
-                          ,BS.pack . show . groupOneA $ fr'
-                          ,BS.pack . show . groupOneB $ fr'
-                          ,BS.pack . show . groupTwoA $ fr'
-                          ,BS.pack . show . groupTwoB $ fr'
-                          ,BS.pack . show . pvalue $ fr'
-                          ]
+--
+--formatFETResultHashAsTable :: FETResultHash
+--                           -> [BS.ByteString]
+--formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
+--  where
+--    formatFETResult :: [BS.ByteString]
+--                    -> Comparison
+--                    -> [FETResult]
+--                    -> [BS.ByteString]
+--    formatFETResult xs c fr = newComparison ++ xs
+--      where
+--       newComparison = newHeader:allResults
+--       groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
+--       groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
+--       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue"
+--       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
+--       allResults = foldl' formatSingleFET [] fr
+--         where
+--           formatSingleFET :: [BS.ByteString]
+--                           -> FETResult
+--                           -> [BS.ByteString]
+--           formatSingleFET xs fr' = newFet:xs
+--             where
+--                newFet = BS.intercalate (BS.singleton '\t')
+--                          [fetName fr'
+--                          ,BS.pack . show . groupOneA $ fr'
+--                          ,BS.pack . show . groupOneB $ fr'
+--                          ,BS.pack . show . groupTwoA $ fr'
+--                          ,BS.pack . show . groupTwoB $ fr'
+--                          ,BS.pack . show . pvalue $ fr'
+--                          ]
 
 
 

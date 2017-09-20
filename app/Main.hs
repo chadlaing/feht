@@ -137,7 +137,7 @@ main = do
   let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
   print cl
 --
-  let compList = fmap (calculateFetFromComparison geneVectorMap) cl
+  let compList = fmap (generateResultHash geneVectorMap) cl
 --
   --filter the results by pvalue if selected
   --simple Bonferroni correction
