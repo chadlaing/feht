@@ -122,29 +122,31 @@ main = do
   --now we have all the information to fully populate the metadataInfo
   let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
   print metadataTable
+
   --if we have SNP data, we need to convert it into binary first
---  let finalGenomeData = case mode userArgs of
---                          "binary" -> genomeData
---                          "snp" ->
---                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
-  let finalGenomeData = convertSnpToBinary delim genomeData
+  let finalGenomeData = case mode userArgs of
+                          "binary" -> binaryDataToTuples delim genomeData
+                          "snp" -> convertSnpToBinary delim genomeData
+                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
+
+  --let finalGenomeData = convertSnpToBinary delim genomeData
 
   let geneVectorMap = getGeneVectorMap finalGenomeData
   print geneVectorMap
 --  print geneVectorMap
---  let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
---  print cl
+  let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
+  print cl
 --
---  let compList = fmap (calculateFetFromComparison geneVectorMap) cl
+  let compList = fmap (calculateFetFromComparison geneVectorMap) cl
 --
---  --filter the results by pvalue if selected
---  --simple Bonferroni correction
---  let finalGroupComps = case correction userArgs of
---                          "bonferroni" -> fmap filterComparisonsByPValue compList
---                          "none" -> compList
---                          _ -> error "Incorrect multiple testing correction supplied"
+  --filter the results by pvalue if selected
+  --simple Bonferroni correction
+  let finalGroupComps = case correction userArgs of
+                          "bonferroni" -> fmap filterComparisonsByPValue compList
+                          "none" -> compList
+                          _ -> error "Incorrect multiple testing correction supplied"
 --
---  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
---  mapM_ BS.putStrLn tableOfComps
+  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
+  mapM_ BS.putStrLn tableOfComps
 
   putStrLn "Done"

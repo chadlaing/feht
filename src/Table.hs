@@ -92,12 +92,29 @@ assignColumnNumbersToGenome = foldl' assignColumn M.empty
 intValue :: BS.ByteString -> Int
 intValue x = read (BS.unpack x)::Int
 
+type BinaryTuple = (BS.ByteString, BS.ByteString)
+type SnpLine = BS.ByteString
+type BinaryLine = BS.ByteString
+
+-- |We are looking to create tuples of the geneID / values
+-- split on the delimiter
+binaryDataToTuples :: Char
+                   -> [BinaryLine]
+                   -> [BinaryTuple]
+binaryDataToTuples d = foldl' (binaryDataToTuples' d) []
+
+binaryDataToTuples' :: Char
+                    -> [BinaryTuple]
+                    -> BinaryLine
+                    -> [BinaryTuple]
+binaryDataToTuples' d' xs bl = (g, gn):xs
+  where
+    (g, gn) = getTupleFromLine d' bl
+
 
 --convert SNPs to binary values
 --For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
 -- and G vs. all
-type BinaryTuple = (BS.ByteString, BS.ByteString)
-type SnpLine = BS.ByteString
 convertSnpToBinary :: Char
                    -> [SnpLine]
                    -> [BinaryTuple]
@@ -110,13 +127,20 @@ convertSnpLineToBinary :: Char
                        -> [BinaryTuple]
 convertSnpLineToBinary d' xs sl = a:t:c:g:xs
   where
-    (geneName:listWithoutGeneName) = BS.split d' sl
-    lineWithoutGeneName = BS.concat . BS.words . BS.unwords $ listWithoutGeneName
+    (geneName, lineWithoutGeneName) = getTupleFromLine d' sl
     a = (BS.concat [geneName, "_a"], BS.map (replaceChar 'A') lineWithoutGeneName)
     t = (BS.concat [geneName, "_t"], BS.map (replaceChar 'T') lineWithoutGeneName)
     c = (BS.concat [geneName, "_c"], BS.map (replaceChar 'C') lineWithoutGeneName)
     g = (BS.concat [geneName, "_g"], BS.map (replaceChar 'G') lineWithoutGeneName)
 
+
+getTupleFromLine :: Char
+                 -> BS.ByteString
+                 -> (BS.ByteString, BS.ByteString)
+getTupleFromLine d bs = (gid, sanitizedValues)
+  where
+    (gid:gvalues) = BS.split d bs
+    sanitizedValues = BS.concat . BS.words . BS.unwords $ gvalues
 
 replaceChar :: Char
             -> Char
