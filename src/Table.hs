@@ -146,8 +146,12 @@ replaceChar :: Char
             -> Char
             -> Char
 replaceChar matchChar currentChar
-    | n == matchChar = '1'   
-    | otherwise = '0'
+    | n == matchChar = '1'
+    | n == 'A' = '0'
+    | n == 'T' = '0'
+    | n == 'C' = '0'
+    | n == 'G' = '0'
+    | otherwise = n
   where
     n = toUpper currentChar
 

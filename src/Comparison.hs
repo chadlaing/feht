@@ -56,8 +56,10 @@ calculateFetFromComparison gvh c = M.insert c allFetResults M.empty
             gtt = M.size $ compGroup2 c
             goa = countCharInVectorByIndices vc '1' goColumnList
             gta = countCharInVectorByIndices vc '1' gtColumnList
-            gob = got - goa
-            gtb = gtt - gta
+            gob = countCharInVectorByIndices vc '0' goColumnList
+            gtb = countCharInVectorByIndices vc '0' gtColumnList
+--            gob = got - goa
+--            gtb = gtt - gta
             theResult = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
                 (GroupTwoB gtb) TwoTail
 

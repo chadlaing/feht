@@ -1,5 +1,5 @@
 ,GenomeA,GenomeB,GenomeC,GenomeD,GenomeE,GenomeF,GenomeG,GenomeH,GenomeI,GenomeJ,GenomeK,GenomeL
-snp1,T,T,T,T,C,A,A,C,A,A,C,C
+snp1,T,-,T,T,C,A,A,C,A,A,C,C
 snp2,C,T,T,C,A,A,C,A,A,T,A,T
 snp3,C,G,T,T,A,A,G,C,C,C,A,A
 snp4,C,T,A,C,G,T,T,-,A,A,C,A
