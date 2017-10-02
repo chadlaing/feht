@@ -41,8 +41,8 @@ data ComparisonResult = MkComparisonResult
 -- create ComparisonResult
 -- add to hash
 
-type GeneVectorHash = M.HashMap GeneName (V.Vector Char)
-type ComparisonResultHash = M.HashMap Comparison [ComparisonResult]
+type GeneVectorMap = M.HashMap GeneName (V.Vector Char)
+type ComparisonResultMap = M.HashMap Comparison [ComparisonResult]
 
 calculateFETFromGene :: GeneName
                      -> V.Vector Char
@@ -68,11 +68,32 @@ calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
     gtb = fromIntegral $ groupTwoB fetr
 
 
+generateResultMap :: GeneVectorMap
+                    -> [Comparison]
+                    -> ComparisonResultMap
+generateResultMap gvm = foldl' (generateComparisonResults gvm) M.empty
 
-generateResultHash :: GeneVectorHash
-                    -> Comparison
-                    -> ComparisonResultHash
-generateResultHash = undefined
+
+generateComparisonResults :: GeneVectorMap
+                          -> ComparisonResultMap
+                          -> Comparison
+                          -> ComparisonResultMap
+generateComparisonResults gvm crm c = M.insert c xsComparison crm
+  where
+    xsComparison = M.foldlWithKey' (generateComparisonResult c) [] gvm 
+
+
+generateComparisonResult :: Comparison
+                   -> [ComparisonResult]
+                   -> GeneName
+                   -> V.Vector Char
+                   -> [ComparisonResult]
+generateComparisonResult c xs gn vc = x:xs
+  where
+    x = MkComparisonResult cFET cRatio
+    cFET = calculateFETFromGene gn vc c
+    cRatio = calculateRatio cFET
+
 
 
 
