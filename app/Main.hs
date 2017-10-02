@@ -141,12 +141,12 @@ main = do
 --
   --filter the results by pvalue if selected
   --simple Bonferroni correction
-  let finalGroupComps = case correction userArgs of
-                          "bonferroni" -> fmap filterComparisonsByPValue compList
-                          "none" -> compList
-                          _ -> error "Incorrect multiple testing correction supplied"
---
-  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
-  mapM_ BS.putStrLn tableOfComps
-
+--   let finalGroupComps = case correction userArgs of
+--                           "bonferroni" -> fmap filterComparisonsByPValue compList
+--                           "none" -> compList
+--                           _ -> error "Incorrect multiple testing correction supplied"
+-- -
+--  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
+  -- mapM_ BS.putStrLn tableOfComps
+  print compList
   putStrLn "Done"

@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Comparison where
-
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Char
 import           Data.Eq
@@ -18,9 +17,9 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (Double, error, fromIntegral, length,
-                                             otherwise, undefined, (+), (++),
-                                             (-), (/))
+import           Prelude                    (Double, error, fromIntegral,
+                                             length, otherwise, undefined, (+),
+                                             (++), (-), (/))
 import           Safe                       (tailDef)
 import           Table
 import           Text.Show
@@ -33,9 +32,9 @@ instance Hashable Comparison
 
 
 data ComparisonResult = MkComparisonResult
-  {compFET :: FETResult
+  {compFET   :: FETResult
   ,compRatio :: Double
-  }
+  } deriving(Show, Eq)
 
 -- generate fet
 -- generate compRatio
@@ -47,13 +46,16 @@ type ComparisonResultHash = M.HashMap Comparison [ComparisonResult]
 
 calculateFETFromGene :: GeneName
                      -> V.Vector Char
+                     -> Comparison
                      -> FETResult
-calculateFETFromGene gn vc = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
+calculateFETFromGene (GeneName gn) vc c = fet (FETName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
   where
     goa = countCharInVectorByIndices vc '1' goColumnList
     gta = countCharInVectorByIndices vc '1' gtColumnList
     gob = countCharInVectorByIndices vc '0' goColumnList
     gtb = countCharInVectorByIndices vc '0' gtColumnList
+    goColumnList = getListOfColumns $ compGroup1 c
+    gtColumnList = getListOfColumns $ compGroup2 c
 
 
 calculateRatio :: FETResult
@@ -66,10 +68,12 @@ calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
     gtb = fromIntegral $ groupTwoB fetr
 
 
+
 generateResultHash :: GeneVectorHash
                     -> Comparison
                     -> ComparisonResultHash
 generateResultHash = undefined
+
 
 
 --calculateFetFromComparison :: GeneVectorHash
@@ -195,21 +199,21 @@ getAllMetaValue t = foldl' getValueList [] allCategories
         gvl xs mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs
 
 
-filterComparisonsByPValue :: FETResultHash
-                          -> FETResultHash
-filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
-  where
-    isSignificant :: FETResultHash
-                  -> Comparison
-                  -> [FETResult]
-                  -> FETResultHash
-    isSignificant hm k fr = if null filteredList
-                                then hm
-                                else M.insert k filteredList hm
-      where
-        filteredList = filter (\x -> pvalue x < correctedCutoff) fr
-        correctedCutoff = 0.05 / fromIntegral numberOfComparisons
-        numberOfComparisons = length fr
+-- filterComparisonsByPValue :: FETResultHash
+--                           -> FETResultHash
+-- filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
+--   where
+--     isSignificant :: FETResultHash
+--                   -> Comparison
+--                   -> [FETResult]
+--                   -> FETResultHash
+--     isSignificant hm k fr = if null filteredList
+--                                 then hm
+--                                 else M.insert k filteredList hm
+--       where
+--         filteredList = filter (\x -> pvalue x < correctedCutoff) fr
+--         correctedCutoff = 0.05 / fromIntegral numberOfComparisons
+--         numberOfComparisons = length fr
 
 
 getComparisonList :: Table
