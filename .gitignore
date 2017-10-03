@@ -1,3 +1,6 @@
 .stack-work/*
 /.idea/
 /feht.iml
+/TAGS
+/src/TAGS
+/.gitconfig

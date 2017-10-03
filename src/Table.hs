@@ -50,6 +50,8 @@ type MetaHash = M.HashMap MetaCategory MetaValue
 type Table = M.HashMap GenomeInfo MetaHash
 
 
+--Store the results in a
+
 --For each line in the file, except the first one, we want to create a record
 --with all of the information given in Table
 --the first one contains column headers
@@ -65,7 +67,7 @@ getMetadataFromFile gnch ((blank:header):xs) = foldl' getEntry M.empty xs
              -> Table
     getEntry t (gName:xs') = M.insert GenomeInfo {genomeName = gName, columnNumber = cNum} metaHash t
       where
-        cNum = fromMaybe (error "There are genome names in the data that do not exist in the metadata") $ M.lookup gName gnch
+        cNum = fromMaybe (error (BS.unpack gName)) $ M.lookup gName gnch
         metaHash = foldl' metaAssign M.empty alignedMeta
           where
             metaAssign :: MetaHash
@@ -90,61 +92,87 @@ assignColumnNumbersToGenome = foldl' assignColumn M.empty
 intValue :: BS.ByteString -> Int
 intValue x = read (BS.unpack x)::Int
 
+type BinaryTuple = (BS.ByteString, BS.ByteString)
+type SnpLine = BS.ByteString
+type BinaryLine = BS.ByteString
+
+-- |We are looking to create tuples of the geneID / values
+-- split on the delimiter
+binaryDataToTuples :: Char
+                   -> [BinaryLine]
+                   -> [BinaryTuple]
+binaryDataToTuples d = foldl' (binaryDataToTuples' d) []
+
+binaryDataToTuples' :: Char
+                    -> [BinaryTuple]
+                    -> BinaryLine
+                    -> [BinaryTuple]
+binaryDataToTuples' d' xs bl = (g, gn):xs
+  where
+    (g, gn) = getTupleFromLine d' bl
 
 
 --convert SNPs to binary values
 --For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
 -- and G vs. all
-type BinaryLine = BS.ByteString
-type SnpLine = BS.ByteString
 convertSnpToBinary :: Char
                    -> [SnpLine]
-                   -> [BinaryLine]
-convertSnpToBinary d = foldl' convertSnpLineToBinary []
-  where
-    convertSnpLineToBinary :: [BinaryLine]
-                           -> SnpLine
-                           -> [BinaryLine]
-    convertSnpLineToBinary xs sl = a:t:c:g:xs
-      where
-        (geneName,lineWithoutGeneName) = BS.break (== d) sl
-        replaceChar :: Char
-                    -> Char
-                    -> Char
-        replaceChar matchChar currentChar
-            | n == matchChar = '1'
-            | n == d = d
-            | otherwise = '0'
-          where
-            n = toUpper currentChar
-        a = BS.concat [geneName, "_a", BS.map (replaceChar 'A') lineWithoutGeneName]
-        t = BS.concat [geneName, "_t", BS.map (replaceChar 'T') lineWithoutGeneName]
-        c = BS.concat [geneName, "_c", BS.map (replaceChar 'C') lineWithoutGeneName]
-        g = BS.concat [geneName, "_g", BS.map (replaceChar 'G') lineWithoutGeneName]
+                   -> [BinaryTuple]
+convertSnpToBinary d = foldl' (convertSnpLineToBinary d) []
 
---this assumes we have stripped the header line and have [[genename:values]]
---the char is the delimiter used for splitting each data line
-getGeneVectorMap :: Char
-                 -> [BS.ByteString]
-                 -> M.HashMap GeneName (V.Vector Char)
-getGeneVectorMap delimiter = foldl' addGeneData M.empty
+
+convertSnpLineToBinary :: Char 
+                       -> [BinaryTuple]
+                       -> SnpLine
+                       -> [BinaryTuple]
+convertSnpLineToBinary d' xs sl = a:t:c:g:xs
   where
-    --each line of the input file is delimited
-    --the gene name is first, followed by the single-char values for each genome
-    --we break each line into gene name and data with break
-    --the vData that remains has the delimiters that need to be eliminated
-    --and the ByteString needs to become a Vector
-    addGeneData :: M.HashMap GeneName (V.Vector Char)
+    (geneName, lineWithoutGeneName) = getTupleFromLine d' sl
+    a = (BS.concat [geneName, "_a"], BS.map (replaceChar 'A') lineWithoutGeneName)
+    t = (BS.concat [geneName, "_t"], BS.map (replaceChar 'T') lineWithoutGeneName)
+    c = (BS.concat [geneName, "_c"], BS.map (replaceChar 'C') lineWithoutGeneName)
+    g = (BS.concat [geneName, "_g"], BS.map (replaceChar 'G') lineWithoutGeneName)
+
+
+getTupleFromLine :: Char
                  -> BS.ByteString
-                -> M.HashMap GeneName (V.Vector Char)
-    addGeneData hm xs
-        | BS.null xs = error "No gene data given"
-        | otherwise = M.insert geneName vectorData hm
-      where
-        geneAndData = BS.break (== delimiter) xs
-        (gName,vData) = geneAndData
-        geneName = GeneName gName
-        vectorData = V.fromList . BS.unpack . BS.filter (/= delimiter) $ vData
+                 -> (BS.ByteString, BS.ByteString)
+getTupleFromLine d bs = (gid, sanitizedValues)
+  where
+    (gid:gvalues) = BS.split d bs
+    sanitizedValues = BS.concat . BS.words . BS.unwords $ gvalues
+
+replaceChar :: Char
+            -> Char
+            -> Char
+replaceChar matchChar currentChar
+    | n == matchChar = '1'
+    | n == 'A' = '0'
+    | n == 'T' = '0'
+    | n == 'C' = '0'
+    | n == 'G' = '0'
+    | otherwise = n
+  where
+    n = toUpper currentChar
+
+
+
+--this assumes we have stripped the header line and have [(geneName, values)]
+getGeneVectorMap :: [BinaryTuple]
+                 -> M.HashMap GeneName (V.Vector Char)
+getGeneVectorMap = foldl' addGeneData M.empty
+
+
+--the vData that remains has the delimiters that need to be eliminated
+--and the ByteString needs to become a Vector
+addGeneData :: M.HashMap GeneName (V.Vector Char)
+             -> BinaryTuple
+            -> M.HashMap GeneName (V.Vector Char)
+addGeneData hm bt = M.insert geneName vectorData hm
+  where
+    (gName,vData) = bt
+    geneName = GeneName gName
+    vectorData = V.fromList . BS.unpack  $ vData
 
 
 --This is the general function for returning a HashMap that contains only those
