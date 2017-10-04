@@ -80,7 +80,7 @@ generateComparisonResults :: GeneVectorMap
                           -> ComparisonResultMap
 generateComparisonResults gvm crm c = M.insert c xsComparison crm
   where
-    xsComparison = M.foldlWithKey' (generateComparisonResult c) [] gvm 
+    xsComparison = M.foldlWithKey' (generateComparisonResult c) [] gvm
 
 
 generateComparisonResult :: Comparison
@@ -190,14 +190,14 @@ getAllMetaValue t = foldl' getValueList [] allCategories
         gvl xs mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs
 
 
-filterResultByPValue :: FETResultMap
-                     -> FETResultMap
+filterResultByPValue :: ComparisonResultMap
+                     -> ComparisonResultMap
 filterResultByPValue = M.foldlWithKey' isSignificant M.empty
   where
-    isSignificant :: FETResultMap
+    isSignificant :: ComparisonResultMap
                   -> Comparison
                   -> [FETResult]
-                  -> FETResultMap
+                  -> ComparisonResultMap
     isSignificant hm k fr = if null filteredList
                                 then hm
                                 else M.insert k filteredList hm

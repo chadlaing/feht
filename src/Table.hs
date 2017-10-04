@@ -1,6 +1,5 @@
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Table where
 
@@ -14,13 +13,12 @@ import           Data.Functor               (fmap)
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
 import           Data.Int
-import           Data.List                  (zip, (++))
+import           Data.List                  (zip)
 import           Data.Maybe
 import           Data.Ord
-import           Data.String
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (Integer, error, undefined, (+))
+import           Prelude                    (error)
 import           Text.Read
 import           Text.Show
 
@@ -49,9 +47,6 @@ instance Hashable MetaValue
 type MetaHash = M.HashMap MetaCategory MetaValue
 type Table = M.HashMap GenomeInfo MetaHash
 
-
---Store the results in a
-
 --For each line in the file, except the first one, we want to create a record
 --with all of the information given in Table
 --the first one contains column headers
@@ -60,11 +55,13 @@ getMetadataFromFile :: GenomeNameColumnHash
                     -> [[BS.ByteString]]
                     -> Table
 getMetadataFromFile _ [] = error "File is empty"
-getMetadataFromFile gnch ((blank:header):xs) = foldl' getEntry M.empty xs
+getMetadataFromFile _ ([]:_) = error "File is empty"
+getMetadataFromFile gnch ((_:header):xs) = foldl' getEntry M.empty xs
   where
     getEntry :: Table
              -> [BS.ByteString]
              -> Table
+    getEntry _ []  = error "Cannot get entry from file"
     getEntry t (gName:xs') = M.insert GenomeInfo {genomeName = gName, columnNumber = cNum} metaHash t
       where
         cNum = fromMaybe (error (BS.unpack gName)) $ M.lookup gName gnch
@@ -121,7 +118,7 @@ convertSnpToBinary :: Char
 convertSnpToBinary d = foldl' (convertSnpLineToBinary d) []
 
 
-convertSnpLineToBinary :: Char 
+convertSnpLineToBinary :: Char
                        -> [BinaryTuple]
                        -> SnpLine
                        -> [BinaryTuple]
@@ -189,7 +186,7 @@ filterTable t mc ft mv = case ft of
     filterFunc :: MetaHash
                -> Bool
     filterFunc mh = case M.lookup mc mh of
-        Just v -> or $ fmap (== v) mv
+        Just v  -> or $ fmap (== v) mv
         Nothing -> False
     filterFunc' :: MetaHash
                 -> Bool
