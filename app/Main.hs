@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 import           Comparison
@@ -84,8 +83,6 @@ main :: IO ()
 main = do
   userArgs <- execParser opts
   let (delim:_) = delimiter userArgs
-  let uMode = mode userArgs
-  print userArgs
 
   let onexs = words $ one userArgs
   let twoxs = words $ two userArgs
@@ -93,11 +90,6 @@ main = do
   let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
   let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
   let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
-
-  print groupOneCategory
-  print groupOneValues
-  print groupTwoCategory
-  print groupTwoValues
 
   --we want to split the strain information file into lines
   --and then send a list of words for processing
@@ -112,38 +104,22 @@ main = do
   --the first column header is blank in the data table or not needed, as it
   --is assumed the first column is gene data
   let (genomeNames:genomeData) = dataLines
-  print genomeNames
   let splitGenomeNames = (BS.words . BS.unwords) $ BS.split delim genomeNames
-  print splitGenomeNames
   --create a hashMap of genomeName -> columnNumber
   let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
-  print nameColumnHash
 
   --now we have all the information to fully populate the metadataInfo
   let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
-  print metadataTable
 
   --if we have SNP data, we need to convert it into binary first
-  let finalGenomeData = case mode userArgs of
-                          "binary" -> binaryDataToTuples delim genomeData
-                          "snp" -> convertSnpToBinary delim genomeData
-                          _ -> error "Incorrect mode given, requires `snp` or `binary`"
-
+  let finalGenomeData = convertDataToTuples (mode userArgs) delim genomeData
 
   let geneVectorMap = getGeneVectorMap finalGenomeData
   let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
-  print cl
---
   let resultMap = generateResultMap geneVectorMap cl
---
-  --filter the results by pvalue if selected
-  --simple Bonferroni correction
-  let finalGroupComps = case correction userArgs of
-                          "bonferroni" -> fmap filterResultsByPValue resultMap
-                          "none" -> resultMap
-                          _ -> error "Incorrect multiple testing correction supplied"
--- -
+
+  let finalGroupComps = applyMultipleTestingCorrection (correction userArgs) resultMap
 --  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
   -- mapM_ BS.putStrLn tableOfComps
-  print resultMap
+  print finalGroupComps
   putStrLn "Done"

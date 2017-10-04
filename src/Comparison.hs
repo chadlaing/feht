@@ -13,14 +13,12 @@ import qualified Data.HashMap.Strict        as M
 import           Data.Int
 import           Data.List
 import           Data.Maybe
-import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (Double, error, fromIntegral,
-                                             length, otherwise, undefined, (+),
-                                             (++), (-), (/))
-import           Safe                       (tailDef)
+import           Prelude                    (Double, String, error,
+                                             fromIntegral, otherwise, (+), (-),
+                                             (/), (*), (>))
 import           Table
 import           Text.Show
 --
@@ -35,11 +33,6 @@ data ComparisonResult = MkComparisonResult
   {compFET   :: FETResult
   ,compRatio :: Double
   } deriving(Show, Eq)
-
--- generate fet
--- generate compRatio
--- create ComparisonResult
--- add to hash
 
 type GeneVectorMap = M.HashMap GeneName (V.Vector Char)
 type ComparisonResultMap = M.HashMap Comparison [ComparisonResult]
@@ -168,9 +161,6 @@ lineFromMetaMatch = foldl' makeLine ""
         mValues = BS.intercalate ","  (fmap unMetaValue xs)
 
 
---Table is Hash of Hash
---Get the values of the HoH, get unique elements, then combine into single
---ByteString
 type MetaMatch = (MetaCategory, [MetaValue])
 getAllMetaValue :: Table
                 -> [MetaMatch]
@@ -187,24 +177,31 @@ getAllMetaValue t = foldl' getValueList [] allCategories
         gvl :: [MetaValue]
             -> MetaHash
             -> [MetaValue]
-        gvl xs mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs
+        gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
+
+applyMultipleTestingCorrection :: String
+                               -> ComparisonResultMap
+                               -> ComparisonResultMap
+applyMultipleTestingCorrection c crm
+  | c == "bonferroni" = M.map bonferroniCorrectResultMap crm
+  | otherwise = crm
 
 
-filterResultByPValue :: ComparisonResultMap
-                     -> ComparisonResultMap
-filterResultByPValue = M.foldlWithKey' isSignificant M.empty
-  where
-    isSignificant :: ComparisonResultMap
-                  -> Comparison
-                  -> [FETResult]
-                  -> ComparisonResultMap
-    isSignificant hm k fr = if null filteredList
-                                then hm
-                                else M.insert k filteredList hm
-      where
-        filteredList = filter (\x -> pvalue x < correctedCutoff) fr
-        correctedCutoff = 0.05 / fromIntegral numberOfComparisons
-        numberOfComparisons = length fr
+bonferroniCorrectResultMap :: [ComparisonResult]
+                           -> [ComparisonResult]
+bonferroniCorrectResultMap crxs = fmap (bonferroniCorrectComparisonResult (length crxs)) crxs
+
+
+bonferroniCorrectComparisonResult :: Int
+                                  -> ComparisonResult
+                                  -> ComparisonResult
+bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
+  = MkComparisonResult cfet{pvalue = adjustedValue} crat
+     where
+       newP = pvalue cfet * fromIntegral nComps
+       adjustedValue = if newP > 1
+                         then 1
+                         else newP
 
 
 getComparisonList :: Table
@@ -216,8 +213,6 @@ getComparisonList t (mc1, mxs1) (mc2, mxs2)
     | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
     | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
   where
-    mm1 = (mc1, mxs1)
-    mm2 = (mc2, mxs2)
     cg1 = filterTable t mc1 FilterCategory mxs1
     cg2 = filterTable t mc2 FilterCategory mxs2
     cg2' = filterTable t mc1 AllButCategory mxs1
@@ -231,9 +226,9 @@ getComparisonList t (mc1, mxs1) (mc2, mxs2)
                     -> [Comparison]
         getCatPerms cs' mv = cvs:permList cs' (takeWhile (/= mv) mxs')
           where
-            cvs = Comparison {compGroup1 = cg1, compGroup2 = cvs2}
+            cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
             cvs2 = filterTable t mc' AllButCategory [mv]
-            cg1 = filterTable t mc' FilterCategory [mv]
+            cg1' = filterTable t mc' FilterCategory [mv]
             permList :: [Comparison]
                      -> [MetaValue]
                      -> [Comparison]

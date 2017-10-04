@@ -18,7 +18,7 @@ import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (error)
+import           Prelude                    (error, String)
 import           Text.Read
 import           Text.Show
 
@@ -92,6 +92,16 @@ intValue x = read (BS.unpack x)::Int
 type BinaryTuple = (BS.ByteString, BS.ByteString)
 type SnpLine = BS.ByteString
 type BinaryLine = BS.ByteString
+
+
+convertDataToTuples :: String
+                    -> Char
+                    -> [BS.ByteString]
+                    -> [BinaryTuple]
+convertDataToTuples m d xs
+  | m == "snp" = convertSnpToBinary d xs
+  | otherwise = binaryDataToTuples d xs
+  
 
 -- |We are looking to create tuples of the geneID / values
 -- split on the delimiter
