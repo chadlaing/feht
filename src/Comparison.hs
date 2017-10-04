@@ -96,36 +96,6 @@ generateComparisonResult c xs gn vc = x:xs
 
 
 
-
---calculateFetFromComparison :: GeneVectorHash
---                           -> Comparison
---                           -> FETResultHash
---calculateFetFromComparison gvh c = M.insert c allFetResults M.empty
---  where
---    allFetResults :: [FETResult]
---    allFetResults = M.foldlWithKey' calcFet [] gvh
---      where
---        calcFet :: [FETResult]
---                -> GeneName
---                -> V.Vector Char
---                -> [FETResult]
---        calcFet xs gn vc = theResult:xs
---          where
---            goColumnList = getListOfColumns $ compGroup1 c
---            gtColumnList = getListOfColumns $ compGroup2 c
---            got = M.size $ compGroup1 c
---            gtt = M.size $ compGroup2 c
---            goa = countCharInVectorByIndices vc '1' goColumnList
---            gta = countCharInVectorByIndices vc '1' gtColumnList
---            gob = countCharInVectorByIndices vc '0' goColumnList
---            gtb = countCharInVectorByIndices vc '0' gtColumnList
-----            gob = got - goa
-----            gtb = gtt - gta
---            theResult = fet (FETName $ unGeneName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta)
---                (GroupTwoB gtb) TwoTail
---
-
-
 getListOfColumns :: Table
                  -> [Int]
 getListOfColumns t = foldl' getColumn [] (M.keys t)
@@ -220,21 +190,21 @@ getAllMetaValue t = foldl' getValueList [] allCategories
         gvl xs mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs
 
 
--- filterComparisonsByPValue :: FETResultHash
---                           -> FETResultHash
--- filterComparisonsByPValue = M.foldlWithKey' isSignificant M.empty
---   where
---     isSignificant :: FETResultHash
---                   -> Comparison
---                   -> [FETResult]
---                   -> FETResultHash
---     isSignificant hm k fr = if null filteredList
---                                 then hm
---                                 else M.insert k filteredList hm
---       where
---         filteredList = filter (\x -> pvalue x < correctedCutoff) fr
---         correctedCutoff = 0.05 / fromIntegral numberOfComparisons
---         numberOfComparisons = length fr
+filterResultByPValue :: FETResultMap
+                     -> FETResultMap
+filterResultByPValue = M.foldlWithKey' isSignificant M.empty
+  where
+    isSignificant :: FETResultMap
+                  -> Comparison
+                  -> [FETResult]
+                  -> FETResultMap
+    isSignificant hm k fr = if null filteredList
+                                then hm
+                                else M.insert k filteredList hm
+      where
+        filteredList = filter (\x -> pvalue x < correctedCutoff) fr
+        correctedCutoff = 0.05 / fromIntegral numberOfComparisons
+        numberOfComparisons = length fr
 
 
 getComparisonList :: Table

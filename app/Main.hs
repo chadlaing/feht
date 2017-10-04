@@ -129,24 +129,21 @@ main = do
                           "snp" -> convertSnpToBinary delim genomeData
                           _ -> error "Incorrect mode given, requires `snp` or `binary`"
 
-  --let finalGenomeData = convertSnpToBinary delim genomeData
 
   let geneVectorMap = getGeneVectorMap finalGenomeData
-  print geneVectorMap
---  print geneVectorMap
   let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
   print cl
 --
-  let compList = generateResultMap geneVectorMap cl
+  let resultMap = generateResultMap geneVectorMap cl
 --
   --filter the results by pvalue if selected
   --simple Bonferroni correction
---   let finalGroupComps = case correction userArgs of
---                           "bonferroni" -> fmap filterComparisonsByPValue compList
---                           "none" -> compList
---                           _ -> error "Incorrect multiple testing correction supplied"
+  let finalGroupComps = case correction userArgs of
+                          "bonferroni" -> fmap filterResultsByPValue resultMap
+                          "none" -> resultMap
+                          _ -> error "Incorrect multiple testing correction supplied"
 -- -
 --  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
   -- mapM_ BS.putStrLn tableOfComps
-  print compList
+  print resultMap
   putStrLn "Done"
