@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 import           Comparison
 import           Control.Applicative
@@ -11,73 +11,13 @@ import           Data.Functor
 import qualified Data.HashMap.Strict        as M
 import           Data.List
 import           Data.Maybe
-import           Data.Semigroup             ((<>))
 import           Data.String
 import           Options.Applicative
-import           Prelude                    (error, Char)
+import           Prelude                    (Char, Read, error)
 import           System.IO
 import           Table
 import           Text.Show
-
-
---for command line processing using cmdargs
-data UserInput = UserInput
-    {metafile   :: FilePath
-    ,datafile   :: FilePath
-    ,one       :: String
-    ,two       :: String
-    ,delimiter  :: String
-    ,mode       :: String
-    ,correction :: String
-    } deriving (Show, Eq)
-
-
-
-feht :: Parser UserInput
-feht = UserInput
-  <$> strOption
-      (long "metafile"
-      <> short 'm'
-      <> metavar "FILE"
-      <> help "File of metadata information")
-  <*> strOption
-      (long "datafile"
-      <> short 'd'
-      <> metavar "FILE"
-      <> help "File of binary or single-nucleotide variant data")
-  <*> strOption
-      (long "one"
-      <> metavar "Group1Name Group1Item Group1Item Group1Item"
-      <> help "Group1 column name, followed by optional Group1 labels to include as part of the group")
-  <*> strOption
-      (long "two"
-      <> metavar "Group2Name Group2Item Group2Item Group2Item"
-      <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
-  <*> strOption
-      (long "delimiter"
-      <> short 'l'
-      <> metavar "[',', '\\t' ...], DEFAULT=','"
-      <> value ","
-      <> help "Delimiter used for both the metadata and data file")
-  <*> strOption
-      (long "mode"
-      <> short 'o'
-      <> metavar "['binary', 'snp'], DEFAULT='binary'"
-      <> value "binary"
-      <> help "Mode for program data; either 'binary' or 'snp'")
-  <*> strOption
-      (long "correction"
-      <> short 'c'
-      <> metavar "['none', 'bonferroni'], DEFAULT='bonferroni'"
-      <> value "bonferroni"
-      <> help "Multiple-testing correction to apply"
-      )
-
-opts :: ParserInfo UserInput
-opts = info (feht <**> helper)
-  (fullDesc
-  <> progDesc "Predictive marker discovery for groups; binary data, genomic data (single nucleotide variants), and arbitrary character data."
-  <> header "feht - predictive marker discovery")
+import           UserInput
 
 main :: IO ()
 main = do

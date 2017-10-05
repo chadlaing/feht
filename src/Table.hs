@@ -21,6 +21,7 @@ import           GHC.Generics               (Generic)
 import           Prelude                    (error, String)
 import           Text.Read
 import           Text.Show
+import UserInput
 
 
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
@@ -94,12 +95,12 @@ type SnpLine = BS.ByteString
 type BinaryLine = BS.ByteString
 
 
-convertDataToTuples :: String
+convertDataToTuples :: UserMode
                     -> Char
                     -> [BS.ByteString]
                     -> [BinaryTuple]
 convertDataToTuples m d xs
-  | m == "snp" = convertSnpToBinary d xs
+  | m == Snp = convertSnpToBinary d xs
   | otherwise = binaryDataToTuples d xs
   
 
