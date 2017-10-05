@@ -22,7 +22,6 @@ import           Prelude                    (Double, String, error,
 import           Table
 import           Text.Show
 --
---
 data Comparison = Comparison{compGroup1 :: Table
                             ,compGroup2 :: Table
                             }deriving (Show, Eq, Generic)
