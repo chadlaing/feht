@@ -13,12 +13,13 @@ import qualified Data.HashMap.Strict        as M
 import           Data.Int
 import           Data.List
 import           Data.Maybe
+import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
 import           Prelude                    (Double, String, error,
                                              fromIntegral, otherwise, (*), (+),
-                                             (-), (/), (>))
+                                             (-), (/), (>), abs)
 import           Table
 import           Text.Show
 import           UserInput
@@ -116,11 +117,15 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
           else rt
 
 
+
+-- |Entry function to sort the results into a table format for printing.
 formatComparisonResultsAsTable :: ComparisonResultMap
                                -> [BS.ByteString]
 formatComparisonResultsAsTable = M.foldlWithKey' formatComparisonResult []
 
 
+-- |For each Comparison [ComparisonResult] add the sorted list of markers
+-- to the output.
 formatComparisonResult :: [BS.ByteString]
                        -> Comparison
                        -> [ComparisonResult]
@@ -135,9 +140,19 @@ formatComparisonResult xs c cr = x:xs
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
     goDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
     gtDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
-    comparisonValues = foldl' formatSingleResult [] cr
+    comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr)
 
 
+-- |Custom sorting function for [ComparisonResult] by abs(ratio).
+-- Correlates with p-value, but useful for sifting large datasets for all / nothing
+-- significant matches.
+-- The sortBy function generalizes sort, but requires the input to comparing defined.
+sortComparisonResultByRatio :: [ComparisonResult]
+                            -> [ComparisonResult]
+sortComparisonResultByRatio = sortBy (comparing $ abs . compRatio)
+
+
+-- |The actual formatting of the result for output. A tab-delimited string for each marker.
 formatSingleResult :: [BS.ByteString]
                    -> ComparisonResult
                    -> [BS.ByteString]
@@ -192,6 +207,8 @@ getAllMetaValue t = foldl' getValueList [] allCategories
         gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
 
 
+-- |Entry point for multiple testing correction of all the comparisons.
+-- One of the defined corrections, or no correction at all is applied.
 applyMultipleTestingCorrection :: Correction
                                -> ComparisonResultMap
                                -> ComparisonResultMap
@@ -199,11 +216,16 @@ applyMultipleTestingCorrection Bonferroni crm = M.map bonferroniCorrectResultMap
 applyMultipleTestingCorrection _ crm = crm
 
 
+-- |Entry point for the Bonferroni correction of the pvalues.
+-- In a controversial move, the pvalues are themselves adjusted to reflect the
+-- new alpha value. Eg. alpha = p / n would be the new cutoff of significance.
+-- Instead we provide (p * n) <= 1.0 for each comparison.
 bonferroniCorrectResultMap :: [ComparisonResult]
                            -> [ComparisonResult]
 bonferroniCorrectResultMap crxs = fmap (bonferroniCorrectComparisonResult (length crxs)) crxs
 
 
+-- |Corrects the pvalue for individual results.
 bonferroniCorrectComparisonResult :: Int
                                   -> ComparisonResult
                                   -> ComparisonResult
@@ -216,6 +238,8 @@ bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
                          else newP
 
 
+-- |Entry point for creating lists of all the comparisons that need to be computed.
+-- Allows for one vs. all, as well as comparisons between specifically designated groups.
 getComparisonList :: Table
                   -> GroupCategories
                  -> [Comparison]
