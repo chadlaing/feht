@@ -42,7 +42,7 @@ calculateFETFromGene :: GeneName
                      -> V.Vector Char
                      -> Comparison
                      -> FETResult
-calculateFETFromGene (GeneName gn) vc c = fet (FETName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
+calculateFETFromGene ( GeneName gn ) vc c = fet (FETName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
   where
     goa = countCharInVectorByIndices vc '1' goColumnList
     gta = countCharInVectorByIndices vc '1' gtColumnList

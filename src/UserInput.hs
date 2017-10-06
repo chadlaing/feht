@@ -12,9 +12,17 @@ data UserInput = UserInput
     ,delimiter  :: String
     ,mode       :: UserMode
     ,correction :: String
-    } deriving (Show, Eq)
+    } deriving (Show, Eq, Read)
 
 data UserMode = Binary | Snp deriving (Eq, Show, Read)
+
+parseUserMode :: ReadM UserMode
+parseUserMode = eitherReader $ \arg ->
+   if arg == "snp"
+     then Right Snp
+     else if arg == "binary"
+             then Right Binary
+             else Left "Incorrect option type"
 
 feht :: Parser UserInput
 feht = UserInput
@@ -42,7 +50,7 @@ feht = UserInput
       <> metavar "[',', '\\t' ...], DEFAULT=','"
       <> value ","
       <> help "Delimiter used for both the metadata and data file")
-  <*> option auto
+  <*> option parseUserMode
       (long "mode"
       <> short 'o'
       <> metavar "['binary', 'snp'], DEFAULT='binary'"

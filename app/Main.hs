@@ -3,20 +3,13 @@
 import           Comparison
 import           Control.Applicative
 import           Control.Monad
-import           Data.Bool
 import qualified Data.ByteString.Lazy.Char8 as BS
-import           Data.Eq
 import           Data.Function
-import           Data.Functor
-import qualified Data.HashMap.Strict        as M
 import           Data.List
-import           Data.Maybe
-import           Data.String
 import           Options.Applicative
-import           Prelude                    (Char, Read, error)
+import           Prelude                    (Read)
 import           System.IO
 import           Table
-import           Text.Show
 import           UserInput
 
 main :: IO ()
