@@ -36,6 +36,8 @@ data ComparisonResult = MkComparisonResult
 type GeneVectorMap = M.HashMap GeneName (V.Vector Char)
 type ComparisonResultMap = M.HashMap Comparison [ComparisonResult]
 
+
+
 calculateFETFromGene :: GeneName
                      -> V.Vector Char
                      -> Comparison
