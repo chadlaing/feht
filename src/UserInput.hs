@@ -2,6 +2,8 @@ module UserInput where
 
 import           Options.Applicative
 import           Data.Semigroup      ((<>))
+import qualified Data.ByteString.Lazy.Char8 as BS
+
 
 -- |For command line processing using optparse-applicative
 -- Use custom data types where possible.
@@ -82,4 +84,5 @@ opts = info (feht <**> helper)
   (fullDesc
   <> progDesc "Predictive marker discovery for groups; binary data, genomic data (single nucleotide variants), and arbitrary character data."
   <> header "feht - predictive marker discovery")
+
 

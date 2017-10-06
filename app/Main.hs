@@ -16,13 +16,8 @@ main :: IO ()
 main = do
   userArgs <- execParser opts
 
-  let delim = delimiter userArgs 
-  let onexs = words $ one userArgs
-  let twoxs = words $ two userArgs
-  let groupOneCategory = MetaCategory $ BS.pack $ head onexs
-  let groupTwoCategory = MetaCategory $ BS.pack $ head twoxs
-  let groupOneValues = (MetaValue . BS.pack) <$> tail onexs
-  let groupTwoValues = (MetaValue . BS.pack) <$> tail twoxs
+  let delim = delimiter userArgs
+  let groupCategories = generateCategories (one userArgs) (two userArgs)
 
   --we want to split the strain information file into lines
   --and then send a list of words for processing
@@ -48,7 +43,7 @@ main = do
   let finalGenomeData = convertDataToTuples (mode userArgs) delim genomeData
 
   let geneVectorMap = getGeneVectorMap finalGenomeData
-  let cl = getComparisonList metadataTable (groupOneCategory, groupOneValues) (groupTwoCategory, groupTwoValues)
+  let cl = getComparisonList metadataTable groupCategories
   let resultMap = generateResultMap geneVectorMap cl
 
   let finalGroupComps = applyMultipleTestingCorrection (correction userArgs) resultMap

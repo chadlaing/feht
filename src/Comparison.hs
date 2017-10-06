@@ -207,10 +207,9 @@ bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
 
 
 getComparisonList :: Table
-                  -> MetaMatch
-                  -> MetaMatch
-                  -> [Comparison]
-getComparisonList t (mc1, mxs1) (mc2, mxs2)
+                  -> GroupCategories
+                 -> [Comparison]
+getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
     | unMetaCategory mc1 == "allbut" = foldl' getAllPermutations [] (getAllMetaValue t)
     | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
     | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]

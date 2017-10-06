@@ -9,7 +9,7 @@ import           Data.Char
 import           Data.Eq
 import           Data.Foldable
 import           Data.Function
-import           Data.Functor               (fmap)
+import           Data.Functor               
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
 import           Data.Int
@@ -18,10 +18,11 @@ import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (error, String)
+import           Prelude                    (String, error, words)
 import           Text.Read
 import           Text.Show
-import UserInput
+import           UserInput
+import Safe
 
 
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
@@ -102,7 +103,7 @@ convertDataToTuples :: UserMode
 convertDataToTuples m d xs
   | m == Snp = convertSnpToBinary d xs
   | otherwise = binaryDataToTuples d xs
-  
+
 
 -- |We are looking to create tuples of the geneID / values
 -- split on the delimiter
@@ -206,3 +207,24 @@ filterTable t mc ft mv = case ft of
         Nothing -> False
 
 
+-- |Store the categories and associated values for the analyses
+data GroupCategories =
+  MkGroupCategories{
+  oneCategory  :: MetaCategory
+  ,oneValues   :: [MetaValue]
+  ,twoCategory :: MetaCategory
+  ,twoValues   :: [MetaValue]}
+
+-- |We want to return a datastructure of the groups and categories
+-- properly parsed with corresponding Types
+generateCategories :: String
+                   -> String
+                   -> GroupCategories
+generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
+  where
+    onexsxs = words onexs
+    twoxsxs = words twoxs
+    goc = MetaCategory $ BS.pack $ headNote "No group one category given" onexsxs
+    gtc = MetaCategory $ BS.pack $ headNote "No group two category given" twoxsxs
+    gov = (MetaValue . BS.pack) <$> tailSafe onexsxs
+    gtv = (MetaValue . BS.pack) <$> tailSafe twoxsxs
