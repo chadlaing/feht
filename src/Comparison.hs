@@ -49,7 +49,6 @@ calculateFETFromGene (GeneName gn) vc c = fet (FETName gn) (GroupOneA goa) (Grou
     goColumnList = getListOfColumns $ compGroup1 c
     gtColumnList = getListOfColumns $ compGroup2 c
 
-
 calculateRatio :: FETResult
                -> Double
 calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
