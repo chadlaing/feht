@@ -17,11 +17,13 @@ import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
 import           Prelude                    (Double, String, error,
-                                             fromIntegral, otherwise, (+), (-),
-                                             (/), (*), (>))
+                                             fromIntegral, otherwise, (*), (+),
+                                             (-), (/), (>))
 import           Table
 import           Text.Show
+import           UserInput
 --
+
 data Comparison = Comparison{compGroup1 :: Table
                             ,compGroup2 :: Table
                             }deriving (Show, Eq, Generic)
@@ -179,12 +181,12 @@ getAllMetaValue t = foldl' getValueList [] allCategories
             -> [MetaValue]
         gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
 
-applyMultipleTestingCorrection :: String
+
+applyMultipleTestingCorrection :: Correction
                                -> ComparisonResultMap
                                -> ComparisonResultMap
-applyMultipleTestingCorrection c crm
-  | c == "bonferroni" = M.map bonferroniCorrectResultMap crm
-  | otherwise = crm
+applyMultipleTestingCorrection Bonferroni crm = M.map bonferroniCorrectResultMap crm
+applyMultipleTestingCorrection _ crm = crm
 
 
 bonferroniCorrectResultMap :: [ComparisonResult]

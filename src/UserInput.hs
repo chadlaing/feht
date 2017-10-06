@@ -3,26 +3,39 @@ module UserInput where
 import           Options.Applicative
 import           Data.Semigroup      ((<>))
 
---for command line processing using optparse-applicative
+-- |For command line processing using optparse-applicative
+-- Use custom data types where possible.
 data UserInput = UserInput
     {metafile   :: FilePath
     ,datafile   :: FilePath
     ,one        :: String
     ,two        :: String
-    ,delimiter  :: String
+    ,delimiter  :: Char
     ,mode       :: UserMode
-    ,correction :: String
+    ,correction :: Correction
     } deriving (Show, Eq, Read)
 
 data UserMode = Binary | Snp deriving (Eq, Show, Read)
+data Correction = Bonferroni | None deriving (Eq, Show, Read)
 
+-- |The multiple testing correction types as their own data type.
+parseCorrection :: ReadM Correction
+parseCorrection = eitherReader $ \arg ->
+  case arg of
+    "bonferroni" -> Right Bonferroni
+    "none" -> Right None
+    _ -> Left "Incorrect multiple testing type selected"
+
+
+-- |Need to create a custom option type so that we can return more than a String.
+-- The mode of the program based on the user data type is either Snp or Binary.
 parseUserMode :: ReadM UserMode
 parseUserMode = eitherReader $ \arg ->
-   if arg == "snp"
-     then Right Snp
-     else if arg == "binary"
-             then Right Binary
-             else Left "Incorrect option type"
+  case arg of
+    "snp" -> Right Snp
+    "binary" -> Right Binary
+    _ -> Left "Incorrect data mode type."
+
 
 feht :: Parser UserInput
 feht = UserInput
@@ -44,11 +57,11 @@ feht = UserInput
       (long "two"
       <> metavar "Group2Name Group2Item Group2Item Group2Item"
       <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
-  <*> strOption
+  <*> option auto
       (long "delimiter"
       <> short 'l'
       <> metavar "[',', '\\t' ...], DEFAULT=','"
-      <> value ","
+      <> value ','
       <> help "Delimiter used for both the metadata and data file")
   <*> option parseUserMode
       (long "mode"
@@ -56,11 +69,11 @@ feht = UserInput
       <> metavar "['binary', 'snp'], DEFAULT='binary'"
       <> value Binary
       <> help "Mode for program data; either 'binary' or 'snp'")
-  <*> strOption
+  <*> option parseCorrection
       (long "correction"
       <> short 'c'
       <> metavar "['none', 'bonferroni'], DEFAULT='bonferroni'"
-      <> value "bonferroni"
+      <> value Bonferroni
       <> help "Multiple-testing correction to apply"
       )
 

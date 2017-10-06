@@ -7,7 +7,7 @@ import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Function
 import           Data.List
 import           Options.Applicative
-import           Prelude                    (Read)
+import           Prelude                    ()
 import           System.IO
 import           Table
 import           UserInput
@@ -15,8 +15,8 @@ import           UserInput
 main :: IO ()
 main = do
   userArgs <- execParser opts
-  let (delim:_) = delimiter userArgs
 
+  let delim = delimiter userArgs 
   let onexs = words $ one userArgs
   let twoxs = words $ two userArgs
   let groupOneCategory = MetaCategory $ BS.pack $ head onexs
