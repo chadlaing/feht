@@ -116,38 +116,48 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
           else rt
 
 
---
---formatFETResultHashAsTable :: FETResultHash
---                           -> [BS.ByteString]
---formatFETResultHashAsTable = M.foldlWithKey' formatFETResult []
---  where
---    formatFETResult :: [BS.ByteString]
---                    -> Comparison
---                    -> [FETResult]
---                    -> [BS.ByteString]
---    formatFETResult xs c fr = newComparison ++ xs
---      where
---       newComparison = newHeader:allResults
---       groupOneDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
---       groupTwoDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
---       groupHeader = "Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue"
---       newHeader = BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" groupOneDescription, BS.append "GroupTwo:" groupTwoDescription, groupHeader]
---       allResults = foldl' formatSingleFET [] fr
---         where
---           formatSingleFET :: [BS.ByteString]
---                           -> FETResult
---                           -> [BS.ByteString]
---           formatSingleFET xs fr' = newFet:xs
---             where
---                newFet = BS.intercalate (BS.singleton '\t')
---                          [fetName fr'
---                          ,BS.pack . show . groupOneA $ fr'
---                          ,BS.pack . show . groupOneB $ fr'
---                          ,BS.pack . show . groupTwoA $ fr'
---                          ,BS.pack . show . groupTwoB $ fr'
---                          ,BS.pack . show . pvalue $ fr'
---                          ]
+formatComparisonResultsAsTable :: ComparisonResultMap
+                               -> [BS.ByteString]
+formatComparisonResultsAsTable = M.foldlWithKey' formatComparisonResult []
 
+
+formatComparisonResult :: [BS.ByteString]
+                       -> Comparison
+                       -> [ComparisonResult]
+                       -> [BS.ByteString]
+formatComparisonResult xs c cr = x:xs
+  where
+    x = BS.concat[comparisonHeader, BS.concat comparisonValues]
+    comparisonHeader =
+      BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" goDescription
+                                         ,BS.append "GroupTwo:" gtDescription
+                                         ,columnHeader]
+    columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
+    goDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
+    gtDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
+    comparisonValues = foldl' formatSingleResult [] cr
+
+
+formatSingleResult :: [BS.ByteString]
+                   -> ComparisonResult
+                   -> [BS.ByteString]
+formatSingleResult xs r = x:xs
+  where
+    x = BS.concat[rl, "\n"]
+    rl = BS.intercalate (BS.singleton '\t') [cName
+                                            ,goa
+                                            ,gob
+                                            ,gta
+                                            ,gtb
+                                            ,pv
+                                            ,ratio]
+    cName = fetName . compFET $ r
+    goa = BS.pack . show . groupOneA . compFET $ r
+    gob = BS.pack . show . groupOneB . compFET $ r
+    gta = BS.pack . show . groupTwoA . compFET $ r
+    gtb = BS.pack . show . groupTwoB . compFET $ r
+    pv = BS.pack . show . pvalue . compFET $ r
+    ratio = BS.pack . show . compRatio $ r
 
 
 lineFromMetaMatch :: [MetaMatch]

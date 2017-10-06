@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Comparison
-import           Control.Applicative
 import           Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BS
 import           Data.Function
@@ -40,14 +39,13 @@ main = do
   let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
 
   --if we have SNP data, we need to convert it into binary first
-  let finalGenomeData = convertDataToTuples (mode userArgs) delim genomeData
+  let finalDataTuples = convertDataToTuples (mode userArgs) delim genomeData
 
-  let geneVectorMap = getGeneVectorMap finalGenomeData
+  let geneVectorMap = getGeneVectorMap finalDataTuples
   let cl = getComparisonList metadataTable groupCategories
   let resultMap = generateResultMap geneVectorMap cl
 
   let finalGroupComps = applyMultipleTestingCorrection (correction userArgs) resultMap
---  let tableOfComps = concatMap formatFETResultHashAsTable finalGroupComps
-  -- mapM_ BS.putStrLn tableOfComps
-  print finalGroupComps
+  let tableOfComps = formatComparisonResultsAsTable finalGroupComps
+  mapM_ BS.putStrLn tableOfComps
   putStrLn "Done"
