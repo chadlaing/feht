@@ -17,7 +17,7 @@ main = do
 
   let delim = delimiter userArgs
   let groupCategories = generateCategories (one userArgs) (two userArgs)
-
+  print groupCategories
   --we want to split the strain information file into lines
   --and then send a list of words for processing
   infoFile <- BS.readFile $ metafile userArgs
@@ -31,12 +31,15 @@ main = do
   --the first column header is blank in the data table or not needed, as it
   --is assumed the first column is gene data
   let (genomeNames:genomeData) = dataLines
+  print genomeNames
+  
   let splitGenomeNames = (BS.words . BS.unwords) $ BS.split delim genomeNames
   --create a hashMap of genomeName -> columnNumber
   let nameColumnHash = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
 
   --now we have all the information to fully populate the metadataInfo
-  let metadataTable = getMetadataFromFile nameColumnHash . fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
+  let metadataTable = getMetadataFromFile nameColumnHash .
+        fmap (BS.words. BS.unwords . BS.split delim) $ BS.lines infoFile
 
   --if we have SNP data, we need to convert it into binary first
   let finalDataTuples = convertDataToTuples (mode userArgs) delim genomeData

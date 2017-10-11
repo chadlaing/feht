@@ -17,13 +17,13 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (Double, String, error,
+import           Prelude                    (Double, String, abs, error,
                                              fromIntegral, otherwise, (*), (+),
-                                             (-), (/), (>), abs)
+                                             (-), (/), (>))
 import           Table
 import           Text.Show
 import           UserInput
---
+import Safe
 
 data Comparison = Comparison{compGroup1 :: Table
                             ,compGroup2 :: Table
@@ -45,7 +45,8 @@ calculateFETFromGene :: GeneName
                      -> V.Vector Char
                      -> Comparison
                      -> FETResult
-calculateFETFromGene ( GeneName gn ) vc c = fet (FETName gn) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
+calculateFETFromGene ( GeneName gn ) vc c = fet (FETName gn) (GroupOneA goa)
+  (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) TwoTail
   where
     goa = countCharInVectorByIndices vc '1' goColumnList
     gta = countCharInVectorByIndices vc '1' gtColumnList
@@ -167,37 +168,48 @@ formatSingleResult xs r = x:xs
                                             ,pv
                                             ,ratio]
     cName = fetName . compFET $ r
-    goa = BS.pack . show . groupOneA . compFET $ r
-    gob = BS.pack . show . groupOneB . compFET $ r
-    gta = BS.pack . show . groupTwoA . compFET $ r
-    gtb = BS.pack . show . groupTwoB . compFET $ r
+    goa = getRatioFromFET groupOneA r
+    gob = getRatioFromFET groupOneB r
+    gta = getRatioFromFET groupTwoA r
+    gtb = getRatioFromFET groupTwoB r
     pv = BS.pack . show . pvalue . compFET $ r
     ratio = BS.pack . show . compRatio $ r
 
 
-lineFromMetaMatch :: [MetaMatch]
+-- |Convert a ratio value within the result to a ByteString
+-- for building up the result lines for printing
+getRatioFromFET :: (FETResult -> Int)
+                -> ComparisonResult
+                -> BS.ByteString
+getRatioFromFET f = BS.pack . show . f . compFET
+
+
+-- |Provides the groups and the group members for the comparison
+-- as a ByteString for building up the result lines for printing
+lineFromMetaMatch :: [(MetaCategory, [MetaValue])]
                   -> BS.ByteString
 lineFromMetaMatch = foldl' makeLine ""
   where
     makeLine :: BS.ByteString
-             -> MetaMatch
+             ->(MetaCategory, [MetaValue]) 
              -> BS.ByteString
     makeLine bs (MetaCategory mc, xs) = BS.intercalate " " [bs, newLine]
       where
         newLine = BS.concat [mc, ":", mValues]
         mValues = BS.intercalate ","  (fmap unMetaValue xs)
 
-
-type MetaMatch = (MetaCategory, [MetaValue])
+-- |Given the Table of data, create a list of all MetaMatch
+-- This a map containing each MetaCategory and its associated values
+-- type MetaMatch = (MetaCategory, [MetaValue])
 getAllMetaValue :: Table
-                -> [MetaMatch]
+                -> [(MetaCategory, [MetaValue])]
 getAllMetaValue t = foldl' getValueList [] allCategories
   where
     allMetaHash = M.elems t
     allCategories = getAllCategoriesFromTable t
-    getValueList :: [MetaMatch]
+    getValueList :: [(MetaCategory, [MetaValue])]
                  -> MetaCategory
-                 -> [MetaMatch]
+                 -> [(MetaCategory, [MetaValue])]
     getValueList xs m = x:xs
       where
         x = (m , nub $ foldl' gvl [] allMetaHash)
@@ -205,6 +217,15 @@ getAllMetaValue t = foldl' getValueList [] allCategories
             -> MetaHash
             -> [MetaValue]
         gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
+
+
+-- |Table is (HashMap GenomeInfo MetaHash) and MetaHash is (HashMap MetaCategory MetaValue)
+--
+getAllCategoriesFromTable :: Table
+                          -> [MetaCategory]
+getAllCategoriesFromTable t = M.keys $ fromMaybe (error "Genome does not exist") (M.lookup singleGenome t)
+  where
+    singleGenome = (headNote "No single genome") . M.keys $ t
 
 
 -- |Entry point for multiple testing correction of all the comparisons.
@@ -238,46 +259,41 @@ bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
                          else newP
 
 
--- |Entry point for creating lists of all the comparisons that need to be computed.
--- Allows for one vs. all, as well as comparisons between specifically designated groups.
-getComparisonList :: Table
-                  -> GroupCategories
-                 -> [Comparison]
+--   |Entry point for creating lists of all the comparisons that need to be
+--     computed.  Allows for one vs. all, as well as comparisons between
+--     specifically designated groups.
+
+getComparisonList :: Table ->
+                     GroupCategories
+                  -> [Comparison]
 getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
-    | unMetaCategory mc1 == "allbut" = foldl' getAllPermutations [] (getAllMetaValue t)
-    | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
-    | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
-  where
-    cg1 = filterTable t mc1 FilterCategory mxs1
-    cg2 = filterTable t mc2 FilterCategory mxs2
-    cg2' = filterTable t mc1 AllButCategory mxs1
-    getAllPermutations :: [Comparison]
-                       -> MetaMatch
-                       -> [Comparison]
-    getAllPermutations cs (mc', mxs') = foldl' getCatPerms cs mxs'
-      where
-        getCatPerms :: [Comparison]
-                    -> MetaValue
-                    -> [Comparison]
-        getCatPerms cs' mv = cvs:permList cs' (takeWhile (/= mv) mxs')
-          where
-            cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
-            cvs2 = filterTable t mc' AllButCategory [mv]
-            cg1' = filterTable t mc' FilterCategory [mv]
-            permList :: [Comparison]
-                     -> [MetaValue]
-                     -> [Comparison]
-            permList cs'' [] = cs''
-            permList cs'' (x:xs) = permList (c:cs'') xs
-              where
-                c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
-                cg2'' = filterTable t mc' FilterCategory [x]
-            -- c is the comparison given the two values
-            -- cvs is the comparison vs the value and all others
+  | unMetaCategory mc1 == "allbut" = foldl' getAllPermutations [] (getAllMetaValue t)
+  | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
+  | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+    where
+      cg1 = filterTable t mc1 FilterCategory mxs1
+      cg2 = filterTable t mc2 FilterCategory mxs2
+      cg2' = filterTable t mc1 AllButCategory mxs1
+      getAllPermutations :: [Comparison]
+                         -> (MetaCategory, [MetaValue]) 
+                         -> [Comparison]
+      getAllPermutations cs (mc', mxs') = foldl' getCatPerms cs mxs'
+        where
+          getCatPerms :: [Comparison]
+                      -> MetaValue
+                      -> [Comparison]
+          getCatPerms cs' mv = cvs:permList cs' (takeWhile (/= mv) mxs')
+            where cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
+                  cvs2 = filterTable t mc' AllButCategory [mv]
+                  cg1' = filterTable t mc' FilterCategory [mv]
+                  permList :: [Comparison]
+                           -> [MetaValue]
+                           -> [Comparison]
+                  permList cs'' [] = cs''
+                  permList cs'' (x:xs) = permList (c:cs'') xs
+                    where c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
+                          cg2'' = filterTable t mc' FilterCategory [x]
+    -- c is the comparison given the two values cvs is the
+    -- comparison vs the value and all others
 
 
-getAllCategoriesFromTable :: Table
-                          -> [MetaCategory]
-getAllCategoriesFromTable t = M.keys $ fromMaybe (error "Genome does not exist") (M.lookup singleGenome t)
-  where
-    singleGenome = head . M.keys $ t

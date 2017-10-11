@@ -9,7 +9,7 @@ import           Data.Char
 import           Data.Eq
 import           Data.Foldable
 import           Data.Function
-import           Data.Functor               
+import           Data.Functor
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
 import           Data.Int
@@ -19,10 +19,10 @@ import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
 import           Prelude                    (String, error, words)
+import           Safe
 import           Text.Read
 import           Text.Show
 import           UserInput
-import Safe
 
 
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
@@ -209,11 +209,11 @@ filterTable t mc ft mv = case ft of
 
 -- |Store the categories and associated values for the analyses
 data GroupCategories =
-  MkGroupCategories{
-  oneCategory  :: MetaCategory
+  MkGroupCategories
+  {oneCategory  :: MetaCategory
   ,oneValues   :: [MetaValue]
   ,twoCategory :: MetaCategory
-  ,twoValues   :: [MetaValue]}
+  ,twoValues   :: [MetaValue]} deriving(Eq, Show)
 
 -- |We want to return a datastructure of the groups and categories
 -- properly parsed with corresponding Types
@@ -226,5 +226,5 @@ generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
     twoxsxs = words twoxs
     goc = MetaCategory $ BS.pack $ headNote "No group one category given" onexsxs
     gtc = MetaCategory $ BS.pack $ headNote "No group two category given" twoxsxs
-    gov = (MetaValue . BS.pack) <$> tailSafe onexsxs
-    gtv = (MetaValue . BS.pack) <$> tailSafe twoxsxs
+    gov = (MetaValue . BS.pack) <$> tailNote "No group one value" onexsxs
+    gtv = (MetaValue . BS.pack) <$> tailNote "No group two value" twoxsxs
