@@ -24,6 +24,8 @@ import           Table
 import           Text.Show
 import           UserInput
 import Safe
+import qualified Data.Set as Set
+
 
 data Comparison = Comparison{compGroup1 :: Table
                             ,compGroup2 :: Table
@@ -198,34 +200,65 @@ lineFromMetaMatch = foldl' makeLine ""
         newLine = BS.concat [mc, ":", mValues]
         mValues = BS.intercalate ","  (fmap unMetaValue xs)
 
+-- |The Categories and all values for each category are stored in a HashMap
+-- that is from the category to a set of all values
+type MetaCategorySet = M.HashMap MetaCategory (Set.Set MetaValue)
+
+createCategoryValueSet :: Table
+                       -> MetaCategorySet
+createCategoryValueSet t = createSetsFromValues (M.elems t)
+
+
+createSetsFromValues :: [M.HashMap MetaCategory MetaValue]
+                     -> MetaCategorySet
+createSetsFromValues = foldl' addToSet M.empty
+
+
+-- | Each M.HashMap MetaCategory MetaValue should be added to the
+-- MetaCategorySet
+addToSet :: MetaCategorySet
+         -> M.HashMap MetaCategory MetaValue
+         -> MetaCategorySet
+addToSet mcs hm = M.foldlWithKey' insertInSet mcs hm
+
+
+insertInSet :: MetaCategorySet
+            -> MetaCategory
+            -> MetaValue
+            -> MetaCategorySet
+insertInSet mcs mc mv = M.insertWith insertNextValue mc Set.empty mcs
+  where
+    insertNextValue _ old = Set.insert mv old
+
+
 -- |Given the Table of data, create a list of all MetaMatch
 -- This a map containing each MetaCategory and its associated values
 -- type MetaMatch = (MetaCategory, [MetaValue])
-getAllMetaValue :: Table
-                -> [(MetaCategory, [MetaValue])]
-getAllMetaValue t = foldl' getValueList [] allCategories
-  where
-    allMetaHash = M.elems t
-    allCategories = getAllCategoriesFromTable t
-    getValueList :: [(MetaCategory, [MetaValue])]
-                 -> MetaCategory
-                 -> [(MetaCategory, [MetaValue])]
-    getValueList xs m = x:xs
-      where
-        x = (m , nub $ foldl' gvl [] allMetaHash)
-        gvl :: [MetaValue]
-            -> MetaHash
-            -> [MetaValue]
-        gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
+-- getAllMetaValue :: Table
+--                 -> [(MetaCategory, Set MetaValue)]
+-- getAllMetaValue t = foldl' getValueList [] allCategories
+--   where
+--     allMetaHash = M.elems t
+--     allCategories = getAllCategoriesFromTable t
+--     getValueList :: [(MetaCategory, [MetaValue])]
+--                  -> MetaCategory
+--                  -> [(MetaCategory, [MetaValue])]
+--     getValueList xs m = x:xs
+--       where
+--         x = (m , nub $ foldl' gvl [] allMetaHash)
+--         gvl :: [MetaValue]
+--             -> MetaHash
+--             -> [MetaValue]
+--         gvl xs' mh = fromMaybe (error "MetaCategory does not exist") (M.lookup m mh):xs'
 
 
--- |Table is (HashMap GenomeInfo MetaHash) and MetaHash is (HashMap MetaCategory MetaValue)
---
-getAllCategoriesFromTable :: Table
-                          -> [MetaCategory]
-getAllCategoriesFromTable t = M.keys $ fromMaybe (error "Genome does not exist") (M.lookup singleGenome t)
-  where
-    singleGenome = (headNote "No single genome") . M.keys $ t
+-- -- |Table is (HashMap GenomeInfo MetaHash) and MetaHash is (HashMap MetaCategory MetaValue)
+-- --
+-- getAllCategoriesFromTable :: Table
+--                           -> [MetaCategory]
+-- getAllCategoriesFromTable t = M.keys $ fromMaybe (error "Genome does not exist") (M.lookup singleGenome t)
+--   where
+--     singleGenome = (headNote "No single genome") . M.keys $ t
 
 
 -- |Entry point for multiple testing correction of all the comparisons.

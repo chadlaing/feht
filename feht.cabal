@@ -23,8 +23,9 @@ library
                        , vector
                        , statistics
                        , safe
-                     , QuickCheck
-                     , optparse-applicative >= 0.13
+                       , containers >= 0.5
+                       , QuickCheck
+                       , optparse-applicative >= 0.13
   default-language:    Haskell2010
 
 executable feht

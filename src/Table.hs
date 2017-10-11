@@ -88,8 +88,6 @@ assignColumnNumbersToGenome = foldl' assignColumn M.empty
                  -> GenomeNameColumnHash
     assignColumn g (n, i) = M.insert n i g
 
-intValue :: BS.ByteString -> Int
-intValue x = read (BS.unpack x)::Int
 
 type BinaryTuple = (BS.ByteString, BS.ByteString)
 type SnpLine = BS.ByteString
