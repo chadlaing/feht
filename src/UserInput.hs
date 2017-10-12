@@ -62,8 +62,8 @@ feht = UserInput
   <*> option auto
       (long "delimiter"
       <> short 'l'
-      <> metavar "[',', '\\t' ...], DEFAULT=','"
-      <> value ','
+      <> metavar "[',', '\\t' ...], DEFAULT='\t'"
+      <> value '\t'
       <> help "Delimiter used for both the metadata and data file")
   <*> option parseUserMode
       (long "mode"

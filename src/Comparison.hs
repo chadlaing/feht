@@ -12,19 +12,16 @@ import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
 import           Data.Int
 import           Data.List
-import           Data.Maybe
 import           Data.Ord
+import qualified Data.Set                   as Set
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (Double, String, abs, error,
-                                             fromIntegral, otherwise, (*), (+),
-                                             (-), (/), (>))
+import           Prelude                    (Double, abs, fromIntegral, (*),
+                                             (+), (-), (/), (>))
 import           Table
 import           Text.Show
 import           UserInput
-import Safe
-import qualified Data.Set as Set
 
 
 data Comparison = Comparison{compGroup1 :: Table
@@ -141,8 +138,8 @@ formatComparisonResult xs c cr = x:xs
                                          ,BS.append "GroupTwo:" gtDescription
                                          ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
-    goDescription = lineFromMetaMatch . getAllMetaValue $ compGroup1 c
-    gtDescription = lineFromMetaMatch . getAllMetaValue $ compGroup2 c
+    goDescription = lineFromMetaMatch .  createCategoryValueSet $ compGroup1 c
+    gtDescription = lineFromMetaMatch . createCategoryValueSet $ compGroup2 c
     comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr)
 
 
@@ -188,17 +185,19 @@ getRatioFromFET f = BS.pack . show . f . compFET
 
 -- |Provides the groups and the group members for the comparison
 -- as a ByteString for building up the result lines for printing
-lineFromMetaMatch :: [(MetaCategory, [MetaValue])]
+lineFromMetaMatch :: MetaCategorySet
                   -> BS.ByteString
-lineFromMetaMatch = foldl' makeLine ""
+lineFromMetaMatch = M.foldlWithKey' makeLine ""
   where
     makeLine :: BS.ByteString
-             ->(MetaCategory, [MetaValue]) 
+             -> MetaCategory
+             -> Set.Set MetaValue
              -> BS.ByteString
-    makeLine bs (MetaCategory mc, xs) = BS.intercalate " " [bs, newLine]
+    makeLine bs (MetaCategory mc) xs = BS.intercalate " " [bs, newLine]
       where
+        setAsList = Set.toList xs
         newLine = BS.concat [mc, ":", mValues]
-        mValues = BS.intercalate ","  (fmap unMetaValue xs)
+        mValues = BS.intercalate ","  (fmap unMetaValue setAsList)
 
 -- |The Categories and all values for each category are stored in a HashMap
 -- that is from the category to a set of all values
@@ -219,7 +218,7 @@ createSetsFromValues = foldl' addToSet M.empty
 addToSet :: MetaCategorySet
          -> M.HashMap MetaCategory MetaValue
          -> MetaCategorySet
-addToSet mcs hm = M.foldlWithKey' insertInSet mcs hm
+addToSet = M.foldlWithKey' insertInSet
 
 
 insertInSet :: MetaCategorySet
@@ -228,7 +227,7 @@ insertInSet :: MetaCategorySet
             -> MetaCategorySet
 insertInSet mcs mc mv = M.insertWith insertNextValue mc Set.empty mcs
   where
-    insertNextValue _ old = Set.insert mv old
+    insertNextValue _ = Set.insert mv
 
 
 -- |Given the Table of data, create a list of all MetaMatch
@@ -296,36 +295,44 @@ bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
 --     computed.  Allows for one vs. all, as well as comparisons between
 --     specifically designated groups.
 
-getComparisonList :: Table ->
-                     GroupCategories
+getComparisonList :: Table
+                  -> GroupCategories
                   -> [Comparison]
-getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
-  | unMetaCategory mc1 == "allbut" = foldl' getAllPermutations [] (getAllMetaValue t)
-  | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
-  | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
-    where
+getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2) =
+  [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+  where
       cg1 = filterTable t mc1 FilterCategory mxs1
       cg2 = filterTable t mc2 FilterCategory mxs2
-      cg2' = filterTable t mc1 AllButCategory mxs1
-      getAllPermutations :: [Comparison]
-                         -> (MetaCategory, [MetaValue]) 
-                         -> [Comparison]
-      getAllPermutations cs (mc', mxs') = foldl' getCatPerms cs mxs'
-        where
-          getCatPerms :: [Comparison]
-                      -> MetaValue
-                      -> [Comparison]
-          getCatPerms cs' mv = cvs:permList cs' (takeWhile (/= mv) mxs')
-            where cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
-                  cvs2 = filterTable t mc' AllButCategory [mv]
-                  cg1' = filterTable t mc' FilterCategory [mv]
-                  permList :: [Comparison]
-                           -> [MetaValue]
-                           -> [Comparison]
-                  permList cs'' [] = cs''
-                  permList cs'' (x:xs) = permList (c:cs'') xs
-                    where c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
-                          cg2'' = filterTable t mc' FilterCategory [x]
+
+  -- | unMetaCategory mc1 == "allbut" = M.foldl' getAllPermutations [] (createCategoryValueSet t)
+  -- | unMetaCategory mc2 == "allbut" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
+  -- | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+  --   where
+  --     cg1 = filterTable t mc1 FilterCategory mxs1
+  --     cg2 = filterTable t mc2 FilterCategory mxs2
+  --     cg2' = filterTable t mc1 AllButCategory mxs1
+  --     getAllPermutations :: [Comparison]
+  --                        -> MetaCategorySet
+  --                        -> [Comparison]
+  --     --getAllPermutations cs (mc', mxs') = foldl' getCatPerms cs mxs'
+  --     getAllPermutations cs mcs = M.foldl' getCatPerms [] mcs
+  --       where
+  --         getCatPerms :: [Comparison]
+  --                     -> Set.Set MetaValue
+  --                     -> [Comparison]
+  --         getCatPerms cs' mvs= cvs:permList cs' (takeWhile (/= mv) mxs')
+  --           where
+  --             mv = Set.toList mvs
+  --             cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
+  --             cvs2 = filterTable t mc' AllButCategory [mv]
+  --             cg1' = filterTable t mc' FilterCategory [mv]
+  --             permList :: [Comparison]
+  --                      -> [MetaValue]
+  --                      -> [Comparison]
+  --             permList cs'' [] = cs''
+  --             permList cs'' (x:xs) = permList (c:cs'') xs
+  --               where c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
+  --                    cg2'' = filterTable t mc' FilterCategory [x]
     -- c is the comparison given the two values cvs is the
     -- comparison vs the value and all others
 
