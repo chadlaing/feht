@@ -18,11 +18,13 @@ import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
 import           GHC.Generics               (Generic)
-import           Prelude                    (String, error, words)
+import           Prelude                    (String, error, words, (-))
 import           Safe
 import           Text.Read
 import           Text.Show
 import           UserInput
+import Safe
+
 
 
 newtype GeneName = GeneName { unGeneName :: BS.ByteString } deriving (Eq, Show, Ord, Generic)
@@ -226,3 +228,25 @@ generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
     gtc = MetaCategory $ BS.pack $ headNote "No group two category given" twoxsxs
     gov = (MetaValue . BS.pack) <$> tailNote "No group one value" onexsxs
     gtv = (MetaValue . BS.pack) <$> tailNote "No group two value" twoxsxs
+
+
+
+data ParsedDataFile =
+  MkParsedDataFile
+  {nameColumnMap :: GenomeNameColumnHash
+  ,characterData :: [BS.ByteString]
+  }deriving (Eq, Show)
+parseDataFile :: Char 
+              -> BS.ByteString
+              -> ParsedDataFile
+parseDataFile d bs = MkParsedDataFile ncm genomeData
+  where
+    ncm = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
+    dataLines = BS.filter ('\r' /=) <$> BS.lines bs
+    genomeNames = headNote "No names present in data file" dataLines
+    genomeData = tailNote "No data present in data file" dataLines
+    splitGenomeNames = BS.split d genomeNames
+  --we only need the headers of the data table to map the names to columns
+  --the first column header is blank in the data table or not needed, as it
+  --is assumed the first column is gene data
+
