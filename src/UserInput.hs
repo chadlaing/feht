@@ -42,8 +42,8 @@ parseUserMode = eitherReader $ \arg ->
 feht :: Parser UserInput
 feht = UserInput
   <$> strOption
-      (long "metafile"
-      <> short 'm'
+      (long "infoFile"
+      <> short 'i'
       <> metavar "FILE"
       <> help "File of metadata information")
   <*> strOption
@@ -61,13 +61,13 @@ feht = UserInput
       <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
   <*> option auto
       (long "delimiter"
-      <> short 'l'
+      <> short 'd'
       <> metavar "[',', '\\t' ...], DEFAULT='\t'"
       <> value '\t'
       <> help "Delimiter used for both the metadata and data file")
   <*> option parseUserMode
       (long "mode"
-      <> short 'o'
+      <> short 'm'
       <> metavar "['binary', 'snp'], DEFAULT='binary'"
       <> value Binary
       <> help "Mode for program data; either 'binary' or 'snp'")

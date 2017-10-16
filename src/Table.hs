@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 module Table where
 
@@ -13,7 +14,7 @@ import           Data.Functor
 import           Data.Hashable
 import qualified Data.HashMap.Strict        as M
 import           Data.Int
-import           Data.List                  (zip)
+import           Data.List
 import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector.Unboxed        as V
@@ -23,7 +24,6 @@ import           Safe
 import           Text.Read
 import           Text.Show
 import           UserInput
-import Safe
 
 
 
@@ -38,10 +38,26 @@ data GenomeInfo =
 
 data FilterType = FilterCategory | AllButCategory deriving (Ord, Read, Show, Eq)
 
---make classes instances of Hashable
---this requires the import of GHC.Generics (Generic) and Data.Hashable
---also requires the Type to derive Generic
---then a new instance for Hashable can be created
+-- |Store the categories and associated values for the analyses
+data GroupCategories =
+  MkGroupCategories
+  {oneCategory :: MetaCategory
+  ,oneValues   :: [MetaValue]
+  ,twoCategory :: MetaCategory
+  ,twoValues   :: [MetaValue]} deriving(Eq, Show)
+
+
+data ParsedDataFile =
+  MkParsedDataFile
+  {nameColumnMap :: GenomeNameColumnHash
+  ,characterData :: [[BS.ByteString]]
+  }deriving (Eq, Show)
+
+
+--make classes instances of Hashable
+--this requires the import of GHC.Generics (Generic) and Data.Hashable
+--also requires the Type to derive Generic
+--then a new instance for Hashable can be created
 instance Hashable GeneName
 instance Hashable GenomeInfo
 instance Hashable MetaCategory
@@ -50,35 +66,70 @@ instance Hashable MetaValue
 
 type MetaHash = M.HashMap MetaCategory MetaValue
 type Table = M.HashMap GenomeInfo MetaHash
+type MetaCats = [BS.ByteString]
 
---For each line in the file, except the first one, we want to create a record
---with all of the information given in Table
---the first one contains column headers
---The first line will be used to get the MetaCategory items
-getMetadataFromFile :: GenomeNameColumnHash
-                    -> [[BS.ByteString]]
+
+-- |For each line in the file, except the first one, we want to create a record
+-- with all of the information given in Table
+-- the first one contains column headers
+-- The first line will be used to get the MetaCategory items
+-- The first column of the metadata file needs no header
+-- as this is the row labels for the data. Thus metaCats takes the tail of the
+-- first row.
+getMetadataFromFile :: Char
+                    -> ParsedDataFile
+                    -> BS.ByteString
                     -> Table
-getMetadataFromFile _ [] = error "File is empty"
-getMetadataFromFile _ ([]:_) = error "File is empty"
-getMetadataFromFile gnch ((_:header):xs) = foldl' getEntry M.empty xs
+getMetadataFromFile _ _ (BS.uncons -> Nothing) = error "File is empty"
+getMetadataFromFile delim pd x = foldl' (getEntry metaCats pd) M.empty splitMetaData
   where
-    getEntry :: Table
-             -> [BS.ByteString]
-             -> Table
-    getEntry _ []  = error "Cannot get entry from file"
-    getEntry t (gName:xs') = M.insert GenomeInfo {genomeName = gName, columnNumber = cNum} metaHash t
-      where
-        cNum = fromMaybe (error (BS.unpack gName)) $ M.lookup gName gnch
-        metaHash = foldl' metaAssign M.empty alignedMeta
-          where
-            metaAssign :: MetaHash
-                       -> (BS.ByteString, BS.ByteString)
-                       -> MetaHash
-            metaAssign t' (category, value) = M.insert (MetaCategory category) (MetaValue value) t'
-            -- this will create a list of ByteString tuples, that need to be made
-            -- into the appropriate MetaCategory and values
-            alignedMeta = zip header xs'
+    metaCats = tailNote "No metadata categories" $ BS.split delim metaHeader
+    xs = BS.lines x
+    splitMetaData = BS.split delim <$> metaData
+    (metaHeader, metaData) = fromMaybe (error "Metadata file missing header information, data, or both") (getHeadAndTail xs)
 
+-- |Insert the metaHash as a value into the GenomeInfo key
+-- the metahash is built by folding metaAssign over the data
+getEntry :: MetaCats
+         -> ParsedDataFile
+         -> Table
+         -> [BS.ByteString]
+         -> Table
+getEntry _ _ _ []  = error "Cannot get entry from metadata file"
+getEntry mc pd t xs = M.insert gi metaHash t
+  where
+    gi = GenomeInfo gName cNum
+    (gName, xs') = fromMaybe (error "Metadata line missing name, data, or both") (getHeadAndTail xs)
+    cNum = fromMaybe (error "name was not found in the data file") (M.lookup gName (nameColumnMap pd))
+    metaHash = foldl' metaAssign M.empty alignedMeta
+    alignedMeta = zip mc xs'
+
+
+metaAssign :: MetaHash
+           -> (BS.ByteString, BS.ByteString)
+           -> MetaHash
+metaAssign mh (category, value) =
+  M.insert (MetaCategory category) (MetaValue value) mh
+    --this will create a list of ByteString tuples, that need to be made
+    -- into the appropriate MetaCategory and values
+
+
+
+
+
+
+
+-- |We want a non-empty head and non-empty tail, otherwise give Nothing
+getHeadAndTail :: [a]
+               -> Maybe (a,[a])
+getHeadAndTail []     = Nothing
+getHeadAndTail [_] = Nothing
+getHeadAndTail (x:xs) = Just (x,xs)
+
+
+-- getMetadataFromFile _ ([]:_) = error "File is empty"
+-- getMetadataFromFile gnch ((_:header):xs) = foldl' getEntry M.empty xs
+--   where
 
 type GenomeNameColumnHash = M.HashMap BS.ByteString Int
 assignColumnNumbersToGenome :: [(BS.ByteString, Int)]
@@ -105,8 +156,8 @@ convertDataToTuples m d xs
   | otherwise = binaryDataToTuples d xs
 
 
--- |We are looking to create tuples of the geneID / values
--- split on the delimiter
+-- |We are looking to create tuples of the geneID / values
+-- split on the delimiter
 binaryDataToTuples :: Char
                    -> [BinaryLine]
                    -> [BinaryTuple]
@@ -121,9 +172,9 @@ binaryDataToTuples' d' xs bl = (g, gn):xs
     (g, gn) = getTupleFromLine d' bl
 
 
---convert SNPs to binary values
---For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
--- and G vs. all
+--convert SNPs to binary values
+--For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
+-- and G vs. all
 convertSnpToBinary :: Char
                    -> [SnpLine]
                    -> [BinaryTuple]
@@ -166,14 +217,14 @@ replaceChar matchChar currentChar
 
 
 
---this assumes we have stripped the header line and have [(geneName, values)]
+--this assumes we have stripped the header line and have [(geneName, values)]
 getGeneVectorMap :: [BinaryTuple]
                  -> M.HashMap GeneName (V.Vector Char)
 getGeneVectorMap = foldl' addGeneData M.empty
 
 
---the vData that remains has the delimiters that need to be eliminated
---and the ByteString needs to become a Vector
+--the vData that remains has the delimiters that need to be eliminated
+--and the ByteString needs to become a Vector
 addGeneData :: M.HashMap GeneName (V.Vector Char)
              -> BinaryTuple
             -> M.HashMap GeneName (V.Vector Char)
@@ -184,8 +235,8 @@ addGeneData hm bt = M.insert geneName vectorData hm
     vectorData = V.fromList . BS.unpack  $ vData
 
 
---This is the general function for returning a HashMap that contains only those
---entries that match a MetaCategory and [MetaValue]
+--This is the general function for returning a HashMap that contains only those
+--entries that match a MetaCategory and [MetaValue]
 filterTable :: Table
             -> MetaCategory
             -> FilterType
@@ -206,17 +257,8 @@ filterTable t mc ft mv = case ft of
         Just v' -> and $ fmap (/= v') mv
         Nothing -> False
 
-
--- |Store the categories and associated values for the analyses
-data GroupCategories =
-  MkGroupCategories
-  {oneCategory  :: MetaCategory
-  ,oneValues   :: [MetaValue]
-  ,twoCategory :: MetaCategory
-  ,twoValues   :: [MetaValue]} deriving(Eq, Show)
-
--- |We want to return a datastructure of the groups and categories
--- properly parsed with corresponding Types
+-- |We want to return a datastructure of the groups and categories
+-- properly parsed with corresponding Types
 generateCategories :: String
                    -> String
                    -> GroupCategories
@@ -230,13 +272,11 @@ generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
     gtv = (MetaValue . BS.pack) <$> tailNote "No group two value" twoxsxs
 
 
+-- |we only need the headers of the data table to map the names to columns
+-- the first column header is blank in the data table or not needed, as it
+-- is assumed the first column is gene data
 
-data ParsedDataFile =
-  MkParsedDataFile
-  {nameColumnMap :: GenomeNameColumnHash
-  ,characterData :: [BS.ByteString]
-  }deriving (Eq, Show)
-parseDataFile :: Char 
+parseDataFile :: Char
               -> BS.ByteString
               -> ParsedDataFile
 parseDataFile d bs = MkParsedDataFile ncm genomeData
@@ -244,9 +284,7 @@ parseDataFile d bs = MkParsedDataFile ncm genomeData
     ncm = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
     dataLines = BS.filter ('\r' /=) <$> BS.lines bs
     genomeNames = headNote "No names present in data file" dataLines
-    genomeData = tailNote "No data present in data file" dataLines
+    genomeData = BS.split d <$> tailNote "No data present in data file" dataLines
     splitGenomeNames = BS.split d genomeNames
-  --we only need the headers of the data table to map the names to columns
-  --the first column header is blank in the data table or not needed, as it
-  --is assumed the first column is gene data
+
 
