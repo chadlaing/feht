@@ -35,7 +35,6 @@ data ComparisonResult = MkComparisonResult
   ,compRatio :: Double
   } deriving(Show, Eq)
 
-type GeneVectorMap = M.HashMap GeneName (V.Vector Char)
 type ComparisonResultMap = M.HashMap Comparison [ComparisonResult]
 
 

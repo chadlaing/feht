@@ -47,10 +47,11 @@ data GroupCategories =
   ,twoValues   :: [MetaValue]} deriving(Eq, Show)
 
 
+type GeneVectorMap = M.HashMap GeneName (V.Vector Char)
 data ParsedDataFile =
   MkParsedDataFile
   {nameColumnMap :: GenomeNameColumnHash
-  ,characterData :: [[BS.ByteString]]
+  ,geneVectorMap :: GeneVectorMap
   }deriving (Eq, Show)
 
 
@@ -145,13 +146,11 @@ assignColumnNumbersToGenome = foldl' assignColumn M.empty
 type BinaryTuple = (BS.ByteString, BS.ByteString)
 
 convertDataToTuples :: UserMode
-                    -> ParsedDataFile
+                    -> [[BS.ByteString]]
                     -> [BinaryTuple]
-convertDataToTuples m pdf
+convertDataToTuples m cd
   | m == Snp = convertSnpToBinary cd
   | otherwise = binaryDataToTuples cd
-  where
-    cd = characterData pdf
 
 
 -- |We are looking to create tuples of the geneID / values
@@ -245,8 +244,8 @@ filterTable t mc ft mv = case ft of
         Just v' -> and $ fmap (/= v') mv
         Nothing -> False
 
--- |We want to return a datastructure of the groups and categories
--- properly parsed with corresponding Types
+-- |We want to return a datastructure of the groups and categories
+-- properly parsed with corresponding Types
 generateCategories :: String
                    -> String
                    -> GroupCategories
@@ -265,14 +264,16 @@ generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
 -- is assumed the first column is gene data
 
 parseDataFile :: Char
+              -> UserMode
               -> BS.ByteString
               -> ParsedDataFile
-parseDataFile d bs = MkParsedDataFile ncm genomeData
+parseDataFile d um bs = MkParsedDataFile ncm gvm
   where
     ncm = assignColumnNumbersToGenome (zip splitGenomeNames [0..])
     dataLines = BS.filter ('\r' /=) <$> BS.lines bs
     genomeNames = headNote "No names present in data file" dataLines
     genomeData = BS.split d <$> tailNote "No data present in data file" dataLines
     splitGenomeNames = BS.split d genomeNames
-
-
+    finalDataTuples = convertDataToTuples um genomeData
+    gvm = getGeneVectorMap finalDataTuples
+    
