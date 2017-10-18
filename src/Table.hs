@@ -143,64 +143,52 @@ assignColumnNumbersToGenome = foldl' assignColumn M.empty
 
 
 type BinaryTuple = (BS.ByteString, BS.ByteString)
-type SnpLine = BS.ByteString
-type BinaryLine = BS.ByteString
-
 
 convertDataToTuples :: UserMode
-                    -> Char
-                    -> [BS.ByteString]
+                    -> ParsedDataFile
                     -> [BinaryTuple]
-convertDataToTuples m d xs
-  | m == Snp = convertSnpToBinary d xs
-  | otherwise = binaryDataToTuples d xs
+convertDataToTuples m pdf
+  | m == Snp = convertSnpToBinary cd
+  | otherwise = binaryDataToTuples cd
+  where
+    cd = characterData pdf
 
 
 -- |We are looking to create tuples of the geneID / values
 -- split on the delimiter
-binaryDataToTuples :: Char
-                   -> [BinaryLine]
+binaryDataToTuples :: [[BS.ByteString]]
                    -> [BinaryTuple]
-binaryDataToTuples d = foldl' (binaryDataToTuples' d) []
+binaryDataToTuples = foldl' binaryDataToTuples' []
 
-binaryDataToTuples' :: Char
+binaryDataToTuples' :: [BinaryTuple]
+                    -> [BS.ByteString]
                     -> [BinaryTuple]
-                    -> BinaryLine
-                    -> [BinaryTuple]
-binaryDataToTuples' d' xs bl = (g, gn):xs
+binaryDataToTuples' bt xs = (g, gn):bt
   where
-    (g, gn) = getTupleFromLine d' bl
+    g:gnxs = xs
+    gn = BS.concat gnxs
 
 
 --convert SNPs to binary values
 --For each line, there is the possibility of A vs. all, T vs. all, C vs. all,
 -- and G vs. all
-convertSnpToBinary :: Char
-                   -> [SnpLine]
+convertSnpToBinary ::[[BS.ByteString]]
                    -> [BinaryTuple]
-convertSnpToBinary d = foldl' (convertSnpLineToBinary d) []
+convertSnpToBinary = foldl' convertSnpLineToBinary []
 
 
-convertSnpLineToBinary :: Char
+convertSnpLineToBinary ::[BinaryTuple]
+                       -> [BS.ByteString]
                        -> [BinaryTuple]
-                       -> SnpLine
-                       -> [BinaryTuple]
-convertSnpLineToBinary d' xs sl = a:t:c:g:xs
+convertSnpLineToBinary bt xs = a:t:c:g:bt
   where
-    (geneName, lineWithoutGeneName) = getTupleFromLine d' sl
+    (geneName:geneData) = xs
+    lineWithoutGeneName = BS.concat geneData
     a = (BS.concat [geneName, "_a"], BS.map (replaceChar 'A') lineWithoutGeneName)
     t = (BS.concat [geneName, "_t"], BS.map (replaceChar 'T') lineWithoutGeneName)
     c = (BS.concat [geneName, "_c"], BS.map (replaceChar 'C') lineWithoutGeneName)
     g = (BS.concat [geneName, "_g"], BS.map (replaceChar 'G') lineWithoutGeneName)
 
-
-getTupleFromLine :: Char
-                 -> BS.ByteString
-                 -> (BS.ByteString, BS.ByteString)
-getTupleFromLine d bs = (gid, sanitizedValues)
-  where
-    (gid:gvalues) = BS.split d bs
-    sanitizedValues = BS.concat . BS.words . BS.unwords $ gvalues
 
 replaceChar :: Char
             -> Char
@@ -281,7 +269,7 @@ parseDataFile :: Char
               -> ParsedDataFile
 parseDataFile d bs = MkParsedDataFile ncm genomeData
   where
-    ncm = assignColumnNumbersToGenome (zip splitGenomeNames [1..])
+    ncm = assignColumnNumbersToGenome (zip splitGenomeNames [0..])
     dataLines = BS.filter ('\r' /=) <$> BS.lines bs
     genomeNames = headNote "No names present in data file" dataLines
     genomeData = BS.split d <$> tailNote "No data present in data file" dataLines
