@@ -84,7 +84,7 @@ getMetadataFromFile _ _ (BS.uncons -> Nothing) = error "File is empty"
 getMetadataFromFile delim pd x = foldl' (getEntry metaCats pd) M.empty splitMetaData
   where
     metaCats = tailNote "No metadata categories" $ BS.split delim metaHeader
-    xs = BS.lines x
+    xs = BS.filter ('\r' /=) <$> BS.lines x
     splitMetaData = BS.split delim <$> metaData
     (metaHeader, metaData) = fromMaybe (error "Metadata file missing header information, data, or both") (getHeadAndTail xs)
 
