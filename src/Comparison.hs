@@ -120,28 +120,30 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
 
 
 -- |Entry function to sort the results into a table format for printing.
-formatComparisonResultsAsTable :: ComparisonResultMap
+formatComparisonResultsAsTable :: Double
+                               -> ComparisonResultMap
                                -> [BS.ByteString]
-formatComparisonResultsAsTable = M.foldlWithKey' formatComparisonResult []
+formatComparisonResultsAsTable d =
+  M.foldlWithKey' (formatComparisonResult d) []
 
 
 -- |For each Comparison [ComparisonResult] add the sorted list of markers
--- to the output.
-formatComparisonResult :: [BS.ByteString]
+-- to the output. Before sorting them, remove any that are below the
+-- ratioFilter.
+formatComparisonResult :: Double
+                       -> [BS.ByteString]
                        -> Comparison
                        -> [ComparisonResult]
                        -> [BS.ByteString]
-formatComparisonResult xs c cr = x:xs
+formatComparisonResult d xs c cr = x:xs
   where
+    cr' = filter (\z -> d < (abs . compRatio $ z)) cr
     x = BS.concat[comparisonHeader, BS.concat comparisonValues]
     comparisonHeader =
       BS.intercalate (BS.singleton '\n') [compDetails c
                                          ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
-    goDescription = lineFromMetaMatch .  createCategoryValueSet $ compGroup1 c
-    gtDescription = lineFromMetaMatch . createCategoryValueSet $ compGroup2 c
-    comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr)
-
+    comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
 
 -- |Custom sorting function for [ComparisonResult] by abs(ratio).
 -- Correlates with p-value, but useful for sifting large datasets for all / nothing
@@ -182,22 +184,6 @@ getRatioFromFET :: (FETResult -> Int)
                 -> BS.ByteString
 getRatioFromFET f = BS.pack . show . f . compFET
 
-
--- |Provides the groups and the group members for the comparison
--- as a ByteString for building up the result lines for printing
-lineFromMetaMatch :: MetaCategorySet
-                  -> BS.ByteString
-lineFromMetaMatch = M.foldlWithKey' makeLine ""
-  where
-    makeLine :: BS.ByteString
-             -> MetaCategory
-             -> Set.Set MetaValue
-             -> BS.ByteString
-    makeLine bs (MetaCategory mc) xs = BS.intercalate " " [bs, newLine]
-      where
-        setAsList = Set.toList xs
-        newLine = BS.concat [mc, ":", mValues]
-        mValues = BS.intercalate ","  (fmap unMetaValue setAsList)
 
 -- |The Categories and all values for each category are stored in a HashMap
 -- that is from the category to a set of all values

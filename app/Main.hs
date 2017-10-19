@@ -27,6 +27,6 @@ main = do
   let resultMap = generateResultMap (geneVectorMap parsedDataFile) cl
   let finalGroupComps =
         applyMultipleTestingCorrection (correction userArgs) resultMap
-  let tableOfComps = formatComparisonResultsAsTable finalGroupComps
+  let tableOfComps = formatComparisonResultsAsTable (ratioFilter userArgs) finalGroupComps
   mapM_ BS.putStrLn tableOfComps
   putStrLn "Done"

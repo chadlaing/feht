@@ -13,6 +13,7 @@ data UserInput = UserInput
     ,delimiter  :: Char
     ,mode       :: UserMode
     ,correction :: Correction
+    ,ratioFilter :: Double
     } deriving (Show, Eq, Read)
 
 data UserMode = Binary | Snp deriving (Eq, Show, Read)
@@ -77,6 +78,13 @@ feht = UserInput
       <> metavar "['none', 'bonferroni'], DEFAULT='bonferroni'"
       <> value Bonferroni
       <> help "Multiple-testing correction to apply"
+      )
+  <*> option auto
+      (long "ratioFilter"
+      <> short 'f'
+      <> metavar "[Filter results by ratio (0.00-1.0), DEFAULT=0]"
+      <> value 0
+      <> help "Display only those results greater than or equal to the value"
       )
 
 opts :: ParserInfo UserInput
