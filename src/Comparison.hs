@@ -1,6 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
 
 
 module Comparison where
@@ -19,15 +18,17 @@ import qualified Data.Set                   as Set
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (undefined, otherwise, Double, abs, fromIntegral, (*),
-                                             (+), (-), (/), (>))
+import           Prelude                    (Double, abs, error, fromIntegral,
+                                             otherwise, undefined, (*), (+),
+                                             (-), (/), (>))
 import           Table
 import           Text.Show
 import           UserInput
 
 
-data Comparison = Comparison{compGroup1 :: Table
-                            ,compGroup2 :: Table
+data Comparison = Comparison{compGroup1  :: Table
+                            ,compGroup2  :: Table
+                            ,compDetails :: BS.ByteString
                             }deriving (Show, Eq, Generic)
 instance Hashable Comparison
 
@@ -103,8 +104,8 @@ generateComparisonResult c xs gn vc = x:xs
     cRatio = calculateRatio cFET
 
 
---check the character at each index that is passed in
---returns total count of matches
+--check the character at each index that is passed in
+--returns total count of matches
 countCharInVectorByIndices :: V.Vector Char
                            -> Char
                            -> [Int]
@@ -118,14 +119,14 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
 
 
 
--- |Entry function to sort the results into a table format for printing.
+-- |Entry function to sort the results into a table format for printing.
 formatComparisonResultsAsTable :: ComparisonResultMap
                                -> [BS.ByteString]
 formatComparisonResultsAsTable = M.foldlWithKey' formatComparisonResult []
 
 
--- |For each Comparison [ComparisonResult] add the sorted list of markers
--- to the output.
+-- |For each Comparison [ComparisonResult] add the sorted list of markers
+-- to the output.
 formatComparisonResult :: [BS.ByteString]
                        -> Comparison
                        -> [ComparisonResult]
@@ -134,8 +135,7 @@ formatComparisonResult xs c cr = x:xs
   where
     x = BS.concat[comparisonHeader, BS.concat comparisonValues]
     comparisonHeader =
-      BS.intercalate (BS.singleton '\n') [BS.append "\nGroupOne:" goDescription
-                                         ,BS.append "GroupTwo:" gtDescription
+      BS.intercalate (BS.singleton '\n') [compDetails c
                                          ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
     goDescription = lineFromMetaMatch .  createCategoryValueSet $ compGroup1 c
@@ -143,16 +143,16 @@ formatComparisonResult xs c cr = x:xs
     comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr)
 
 
--- |Custom sorting function for [ComparisonResult] by abs(ratio).
--- Correlates with p-value, but useful for sifting large datasets for all / nothing
--- significant matches.
--- The sortBy function generalizes sort, but requires the input to comparing defined.
+-- |Custom sorting function for [ComparisonResult] by abs(ratio).
+-- Correlates with p-value, but useful for sifting large datasets for all / nothing
+-- significant matches.
+-- The sortBy function generalizes sort, but requires the input to comparing defined.
 sortComparisonResultByRatio :: [ComparisonResult]
                             -> [ComparisonResult]
 sortComparisonResultByRatio = sortBy (comparing $ abs . compRatio)
 
 
--- |The actual formatting of the result for output. A tab-delimited string for each marker.
+-- |The actual formatting of the result for output. A tab-delimited string for each marker.
 formatSingleResult :: [BS.ByteString]
                    -> ComparisonResult
                    -> [BS.ByteString]
@@ -175,16 +175,16 @@ formatSingleResult xs r = x:xs
     ratio = BS.pack . show . compRatio $ r
 
 
--- |Convert a ratio value within the result to a ByteString
--- for building up the result lines for printing
+-- |Convert a ratio value within the result to a ByteString
+-- for building up the result lines for printing
 getRatioFromFET :: (FETResult -> Int)
                 -> ComparisonResult
                 -> BS.ByteString
 getRatioFromFET f = BS.pack . show . f . compFET
 
 
--- |Provides the groups and the group members for the comparison
--- as a ByteString for building up the result lines for printing
+-- |Provides the groups and the group members for the comparison
+-- as a ByteString for building up the result lines for printing
 lineFromMetaMatch :: MetaCategorySet
                   -> BS.ByteString
 lineFromMetaMatch = M.foldlWithKey' makeLine ""
@@ -199,8 +199,8 @@ lineFromMetaMatch = M.foldlWithKey' makeLine ""
         newLine = BS.concat [mc, ":", mValues]
         mValues = BS.intercalate ","  (fmap unMetaValue setAsList)
 
--- |The Categories and all values for each category are stored in a HashMap
--- that is from the category to a set of all values
+-- |The Categories and all values for each category are stored in a HashMap
+-- that is from the category to a set of all values
 type MetaCategorySet = M.HashMap MetaCategory (Set.Set MetaValue)
 
 createCategoryValueSet :: Table
@@ -215,8 +215,8 @@ createSetsFromValues :: [M.HashMap MetaCategory MetaValue]
 createSetsFromValues = foldl' addToSet M.empty
 
 
--- | Each M.HashMap MetaCategory MetaValue should be added to the
--- MetaCategorySet
+-- | Each M.HashMap MetaCategory MetaValue should be added to the
+-- MetaCategorySet
 addToSet :: MetaCategorySet
          -> M.HashMap MetaCategory MetaValue
          -> MetaCategorySet
@@ -239,8 +239,8 @@ insertInSet mcs mc mv = M.insertWith insertNextValue mc Set.empty mcs
     insertNextValue _ = Set.insert mv
 
 
--- |Entry point for multiple testing correction of all the comparisons.
--- One of the defined corrections, or no correction at all is applied.
+-- |Entry point for multiple testing correction of all the comparisons.
+-- One of the defined corrections, or no correction at all is applied.
 applyMultipleTestingCorrection :: Correction
                                -> ComparisonResultMap
                                -> ComparisonResultMap
@@ -248,16 +248,16 @@ applyMultipleTestingCorrection Bonferroni crm = M.map bonferroniCorrectResultMap
 applyMultipleTestingCorrection _ crm = crm
 
 
--- |Entry point for the Bonferroni correction of the pvalues.
--- We output the corrected pvalues, which are themselves adjusted to reflect the
--- new alpha value. Eg. alpha = p / n would be the new cutoff of significance.
--- Instead we provide (p * n) <= 1.0 for each comparison.
+-- |Entry point for the Bonferroni correction of the pvalues.
+-- We output the corrected pvalues, which are themselves adjusted to reflect the
+-- new alpha value. Eg. alpha = p / n would be the new cutoff of significance.
+-- Instead we provide (p * n) <= 1.0 for each comparison.
 bonferroniCorrectResultMap :: [ComparisonResult]
                            -> [ComparisonResult]
 bonferroniCorrectResultMap crxs = fmap (bonferroniCorrectComparisonResult (length crxs)) crxs
 
 
--- |Corrects the pvalue for individual results.
+-- |Corrects the pvalue for individual results.
 bonferroniCorrectComparisonResult :: Int
                                   -> ComparisonResult
                                   -> ComparisonResult
@@ -270,22 +270,51 @@ bonferroniCorrectComparisonResult nComps (MkComparisonResult cfet crat)
                          else newP
 
 
---   |Entry point for creating lists of all the comparisons that need to be
---     computed.  Allows for one vs. all, as well as comparisons between
---     specifically designated groups.
+--   |Entry point for creating lists of all the comparisons that need to be
+--     computed.  Allows for one vs. all, as well as comparisons between
+--     specifically designated groups.
 
 getComparisonList :: Table
                   -> GroupCategories
                   -> [Comparison]
 getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
   | unMetaCategory mc1 == "all" = M.foldlWithKey' (getAllPermutations t) [] (createCategoryValueSet t)
-  | unMetaCategory mc2 == "all" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
+  | unMetaCategory mc2 == "all" = comp'
   | otherwise = comp
     where
-      comp = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+      comp' = [Comparison cg1 cg2' cd']
+      comp = [Comparison cg1 cg2 cd]
+      cd = createComparisonDescription mc1 mxs1 mc2 mxs2
+      cd' = createComparisonDescription mc1 mxs1 mc1 []
       cg1 = filterTable t mc1 FilterCategory mxs1
       cg2 = filterTable t mc2 FilterCategory mxs2
       cg2' = filterTable t mc1 AllButCategory mxs1
+
+-- |Consistent means of creating a description of the comparison.
+-- Requires both MetaCategories (usually, but not required to be the same)
+-- If the second [] is empty, assumes a one vs. all comparison.
+createComparisonDescription :: MetaCategory
+                            -> [MetaValue]
+                            -> MetaCategory
+                            -> [MetaValue]
+                            -> BS.ByteString
+createComparisonDescription xc xs yc ys =
+  BS.concat["Group1 category: "
+           ,unMetaCategory xc
+           ,g1d
+           ,"Group2 category: "
+           ,unMetaCategory yc
+           ,g2d]
+  where
+    g1d = case xs of
+      [] -> error "No group 1 values"
+      _ -> BS.concat[" Group1: ", BS.intercalate "," (unMetaValue <$> xs), "\n"]
+    g2d = case ys of
+      [] -> BS.concat [" Group2: !", BS.intercalate "," (unMetaValue <$> xs)]
+      _ -> BS.concat[" Group2: ", BS.intercalate "," (unMetaValue <$> ys), "\n"]
+
+
+
 
 -- |If set to all, we need to go through each category in the Table, and create
 -- a pairwise comparison for all of the options. Eg. MetaCategory Province,
@@ -315,10 +344,10 @@ getOva :: Table
        -> [Comparison]
 getOva t mc xs v = nc:xs
   where
-    nc = Comparison cg1 cg2
+    nc = Comparison cg1 cg2 cd
     cg1 = filterTable t mc FilterCategory [v]
     cg2 = filterTable t mc AllButCategory [v]
-
+    cd = createComparisonDescription mc [v] mc []
 
 -- |Given a pair of MetaValues, create a comparison of x vs. y
 -- This requires wrapping the single value as a list and passing the
@@ -327,11 +356,11 @@ pairToComparison :: Table
                  -> MetaCategory
                  -> (MetaValue, MetaValue)
                  -> Comparison
-pairToComparison t mc (x, y) = Comparison cg1 cg2
+pairToComparison t mc (x, y) = Comparison cg1 cg2 cd
   where
     cg1 = filterTable t mc FilterCategory [x]
     cg2 = filterTable t mc FilterCategory [y]
-
+    cd = createComparisonDescription mc [x] mc [y]
 
 
 -- |Use the tails function in a list comprehension to generate all needed
@@ -339,30 +368,4 @@ pairToComparison t mc (x, y) = Comparison cg1 cg2
 getAllListPairs :: [MetaValue]
                 -> [(MetaValue, MetaValue)]
 getAllListPairs xs = [(x,y) | (x:ys) <- tails xs, y <- ys]
-                
-  
 
-
-      -- getAllPermutations :: [Comparison]
-      --                    -> Set.Set MetaValue
-      -- getAllPermutations cs mcs = M.foldl' getCatPerms [] mcs
-      --   where
-      --     getCatPerms :: [Comparison]
-      --                 -> Set.Set MetaValue
-      --                 -> [Comparison]
-      --     getCatPerms cs' mvs= cvs:permList cs' (takeWhile (/= mv) mxs')
-      --       where
-      --         mv = Set.toList mvs
-      --         cvs = Comparison {compGroup1 = cg1', compGroup2 = cvs2}
-      --         cvs2 = filterTable t mc' AllButCategory [mv]
-      --         cg1' = filterTable t mc' FilterCategory [mv]
-      --         permList :: [Comparison]
-      --                  -> [MetaValue]
-      --                  -> [Comparison]
-      --         permList cs'' [] = cs''
-      --         permList cs'' (x:xs) = permList (c:cs'') xs
-      --           where
-      --             c = Comparison {compGroup1 = cg1, compGroup2 = cg2''}
-      --             cg2'' = filterTable t mc' FilterCategory [x]
-    -- c is the comparison given the two values cvs is the
--- comparison vs the value and all others
