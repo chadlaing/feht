@@ -2,8 +2,6 @@ module UserInput where
 
 import           Options.Applicative
 import           Data.Semigroup      ((<>))
-import qualified Data.ByteString.Lazy.Char8 as BS
-
 
 -- |For command line processing using optparse-applicative
 -- Use custom data types where possible.
@@ -54,10 +52,12 @@ feht = UserInput
   <*> strOption
       (long "one"
       <> metavar "Group1Name Group1Item Group1Item Group1Item"
+      <> value "all all"
       <> help "Group1 column name, followed by optional Group1 labels to include as part of the group")
   <*> strOption
       (long "two"
       <> metavar "Group2Name Group2Item Group2Item Group2Item"
+      <> value "all all"
       <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
   <*> option auto
       (long "delimiter"
