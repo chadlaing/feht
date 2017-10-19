@@ -39,9 +39,9 @@ executable feht
                      , feht
   default-language:    Haskell2010
 
-test-suite feht-test
+test-suite unit-tests
   type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
+  hs-source-dirs:      test/unit
   main-is:             Spec.hs
   build-depends:       base
                      , hspec
@@ -49,6 +49,16 @@ test-suite feht-test
                      , feht
                      , bytestring
                      , ieee754
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite integration-tests
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test/integration
+  main-is:             Spec.hs
+  build-depends:       base >= 4.9
+                       ,hspec >= 2.4
+                       ,feht
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
