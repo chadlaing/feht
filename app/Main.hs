@@ -24,6 +24,7 @@ main = do
         getMetadataFromFile (delimiter userArgs) parsedDataFile infoFile
 
   let cl = getComparisonList metadataTable groupCategories
+  print cl
   let resultMap = generateResultMap (geneVectorMap parsedDataFile) cl
   let finalGroupComps =
         applyMultipleTestingCorrection (correction userArgs) resultMap

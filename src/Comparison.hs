@@ -280,7 +280,7 @@ getComparisonList :: Table
 getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
   | unMetaCategory mc1 == "all" = M.foldlWithKey' (getAllPermutations t) [] (createCategoryValueSet t)
   | unMetaCategory mc2 == "all" = [Comparison {compGroup1 = cg1, compGroup2 = cg2'}]
-  | otherwise = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
+  | otherwise = comp
     where
       comp = [Comparison {compGroup1 = cg1, compGroup2 = cg2}]
       cg1 = filterTable t mc1 FilterCategory mxs1
@@ -291,33 +291,33 @@ getComparisonList t (MkGroupCategories mc1 mxs1 mc2 mxs2)
 -- a pairwise comparison for all of the options. Eg. MetaCategory Province,
 -- [MetaValue] [AB, BC, SK, QC]
 -- Also include one vs. all eg. AB vs. [BC, SK, QC]
+-- If the list is only two members long, then one vs. all is not required
+-- As A vs. B == B vs. A
 getAllPermutations :: Table
                    -> [Comparison]
                    -> MetaCategory
                    -> Set.Set MetaValue
                    -> [Comparison]
-getAllPermutations t xs mc mvs = concat [allPairwiseComparisons, oneVsAllComparisons, xs]
+getAllPermutations t xs mc mvs = concat [allPairwiseComparisons, ova, xs]
   where
     mxs = Set.toList mvs
     allPairs = getAllListPairs mxs
     allPairwiseComparisons = pairToComparison t mc <$> allPairs
-    oneVsAll = getOneVsAll mxs
-    oneVsAllComparisons = oneVsAllToComparison t mc <$> oneVsAll
+    ova = if length mxs > 2
+             then foldl' (getOva t mc) [] mxs
+             else []
 
-oneVsAllToComparison :: Table
-                     -> MetaCategory
-                     -> (MetaValue, [MetaValue])
-                     -> Comparison
-oneVsAllToComparison t mc (x, ys) = Comparison cg1 cg2
+-- | One vs. all
+getOva :: Table
+       -> MetaCategory
+       -> [Comparison]
+       -> MetaValue
+       -> [Comparison]
+getOva t mc xs v = nc:xs
   where
-    cg1 = filterTable t mc FilterCategory [x]
-    cg2 = filterTable t mc FilterCategory ys
-    
--- λ> [(x,filter (x /=) a) |x <- a ]
--- [(1,[2,3,4]),(2,[1,3,4]),(3,[1,2,4]),(4,[1,2,3])]
-getOneVsAll :: [MetaValue]
-            -> [(MetaValue, [MetaValue])]
-getOneVsAll xs = [(x, filter (x /=) xs) | x <- xs]
+    nc = Comparison cg1 cg2
+    cg1 = filterTable t mc FilterCategory [v]
+    cg2 = filterTable t mc AllButCategory [v]
 
 
 -- |Given a pair of MetaValues, create a comparison of x vs. y
