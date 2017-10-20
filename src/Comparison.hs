@@ -21,7 +21,7 @@ import           FET
 import           GHC.Generics               (Generic)
 import           Prelude                    (Double, abs, error, fromIntegral,
                                              otherwise, undefined, (*), (+),
-                                             (-), (/), (>))
+                                             (-), (/), (>), (&&))
 import           Table
 import           Text.Show
 import           UserInput
@@ -70,8 +70,12 @@ getListOfColumns t = foldl' getColumn [] (M.keys t)
 
 calculateRatio :: FETResult
                -> Double
-calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
+calculateRatio fetr
+  | (go /= 0) && (gt /=0) = (goa / (goa + gob)) - (gta / (gta + gtb))
+  | otherwise = 0
   where
+    go = goa + gob
+    gt = gta + gtb
     goa = fromIntegral $ groupOneA fetr
     gob = fromIntegral $ groupOneB fetr
     gta = fromIntegral $ groupTwoA fetr
