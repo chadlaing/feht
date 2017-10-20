@@ -259,10 +259,9 @@ generateCategories onexs twoxs = MkGroupCategories goc gov gtc gtv
     gtv = (MetaValue . BS.pack) <$> tailNote "No group two value" twoxsxs
 
 
--- |we only need the headers of the data table to map the names to columns
+-- |We only need the headers of the data table to map the names to columns
 -- the first column header is blank in the data table or not needed, as it
 -- is assumed the first column is gene data
-
 parseDataFile :: Char
               -> UserMode
               -> BS.ByteString
@@ -273,7 +272,7 @@ parseDataFile d um bs = MkParsedDataFile ncm gvm
     dataLines = BS.filter ('\r' /=) <$> BS.lines bs
     genomeNames = headNote "No names present in data file" dataLines
     genomeData = BS.split d <$> tailNote "No data present in data file" dataLines
-    splitGenomeNames = BS.split d genomeNames
+    splitGenomeNames = tailNote "No genome names present" . BS.split d $ genomeNames
     finalDataTuples = convertDataToTuples um genomeData
     gvm = getGeneVectorMap finalDataTuples
     

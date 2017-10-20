@@ -20,9 +20,10 @@ main = do
 
   let parsedDataFile =
         parseDataFile (delimiter userArgs) (mode userArgs) dataFile
+
+  print parsedDataFile
   let metadataTable =
         getMetadataFromFile (delimiter userArgs) parsedDataFile infoFile
-
   let cl = getComparisonList metadataTable groupCategories
   let resultMap = generateResultMap (geneVectorMap parsedDataFile) cl
   let finalGroupComps =
@@ -30,3 +31,5 @@ main = do
   let tableOfComps = formatComparisonResultsAsTable (ratioFilter userArgs) finalGroupComps
   mapM_ BS.putStrLn tableOfComps
   putStrLn "Done"
+
+  

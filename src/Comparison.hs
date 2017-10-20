@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+
 {-# LANGUAGE OverloadedStrings #-}
 
 
@@ -64,7 +65,7 @@ getListOfColumns t = foldl' getColumn [] (M.keys t)
     getColumn :: [Int]
               -> GenomeInfo
               -> [Int]
-    getColumn xs gi = columnNumber gi - 1:xs
+    getColumn xs gi = columnNumber gi:xs
 
 
 calculateRatio :: FETResult
