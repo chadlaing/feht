@@ -77,7 +77,8 @@ calculateRatio fetr = (goa / (goa + gob)) - (gta / (gta + gtb))
     gta = fromIntegral $ groupTwoA fetr
     gtb = fromIntegral $ groupTwoB fetr
 
-
+-- |Given the list of comparisons, create a map containing
+-- the results for each comparison
 generateResultMap :: GeneVectorMap
                     -> [Comparison]
                     -> ComparisonResultMap
@@ -93,6 +94,7 @@ generateComparisonResults gvm crm c = M.insert c xsComparison crm
     xsComparison = M.foldlWithKey' (generateComparisonResult c) [] gvm
 
 
+-- |For each comparison, get the Fisher's Exact and Ratio value
 generateComparisonResult :: Comparison
                    -> [ComparisonResult]
                    -> GeneName
@@ -144,8 +146,8 @@ formatComparisonResult d xs c cr = x:xs
       BS.intercalate (BS.singleton '\n') [compDetails c
                                          ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
-    comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
-
+    -- comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
+    comparisonValues = foldl' formatSingleResult [] cr
 -- |Custom sorting function for [ComparisonResult] by abs(ratio).
 -- Correlates with p-value, but useful for sifting large datasets for all / nothing
 -- significant matches.

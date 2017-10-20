@@ -91,7 +91,7 @@ getMetadataFromFile delim pd x = foldl' (getEntry metaCats pd) M.empty splitMeta
 
 -- |Insert the metaHash as a value into the GenomeInfo key
 -- the metahash is built by folding metaAssign over the data
-getEntry :: MetaCats
+getEntry :: [BS.ByteString] -- this is the meta categories, same every time
          -> ParsedDataFile
          -> Table
          -> [BS.ByteString]
@@ -103,7 +103,9 @@ getEntry mc pd t xs = M.insert gi metaHash t
     (gName, xs') = fromMaybe (error "Metadata line missing name, data, or both") (getHeadAndTail xs)
     cNum = fromMaybe (error "name was not found in the data file") (M.lookup gName (nameColumnMap pd))
     metaHash = foldl' metaAssign M.empty alignedMeta
-    alignedMeta = zip mc xs'
+    alignedMeta = if (length mc) == (length xs')
+                     then zip mc xs'
+                     else error "MetaCategories not equal to MeatValues"
 
 
 metaAssign :: MetaHash
