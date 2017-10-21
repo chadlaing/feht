@@ -62,8 +62,8 @@ feht = UserInput
       <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
   <*> option auto
       (long "delimiter"
-      <> short 'd'
-      <> metavar "[',', '\\t' ...], DEFAULT='\t'"
+      <> short 'l'
+      <> metavar "[',', '\\t' ...], DEFAULT='\\t'"
       <> value '\t'
       <> help "Delimiter used for both the metadata and data file")
   <*> option parseUserMode

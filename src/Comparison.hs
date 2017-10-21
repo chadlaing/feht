@@ -19,7 +19,7 @@ import qualified Data.Set                   as Set
 import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
-import           Prelude                    (Double, abs, error, fromIntegral,
+import           Prelude                    (not, Double, abs, error, fromIntegral,
                                              otherwise, undefined, (&&), (*),
                                              (+), (-), (/), (>))
 import           Table
@@ -142,13 +142,15 @@ formatComparisonResult :: Double
                        -> Comparison
                        -> [ComparisonResult]
                        -> [BS.ByteString]
-formatComparisonResult d xs c cr = x:xs
+formatComparisonResult d xs c cr
+  | not (null cr') = x:xs
+  | otherwise = xs
   where
-    cr' = filter (\z -> d < (abs . compRatio $ z)) cr
-    x = BS.concat[comparisonHeader, BS.concat comparisonValues]
+    cr' = filter (\z -> d <= (abs . compRatio $ z)) cr
+    x = BS.concat["[#-\n", comparisonHeader, BS.concat comparisonValues, "-#]\n"]
     comparisonHeader =
-      BS.intercalate (BS.singleton '\n') [compDetails c
-                                         ,columnHeader]
+      BS.intercalate "---\n" [compDetails c
+                             ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
     comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
 -- |Custom sorting function for [ComparisonResult] by abs(ratio).
