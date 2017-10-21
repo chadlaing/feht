@@ -20,8 +20,8 @@ import qualified Data.Vector.Unboxed        as V
 import           FET
 import           GHC.Generics               (Generic)
 import           Prelude                    (Double, abs, error, fromIntegral,
-                                             otherwise, undefined, (*), (+),
-                                             (-), (/), (>), (&&))
+                                             otherwise, undefined, (&&), (*),
+                                             (+), (-), (/), (>))
 import           Table
 import           Text.Show
 import           UserInput
@@ -150,8 +150,7 @@ formatComparisonResult d xs c cr = x:xs
       BS.intercalate (BS.singleton '\n') [compDetails c
                                          ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
-    -- comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
-    comparisonValues = foldl' formatSingleResult [] cr
+    comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
 -- |Custom sorting function for [ComparisonResult] by abs(ratio).
 -- Correlates with p-value, but useful for sifting large datasets for all / nothing
 -- significant matches.
