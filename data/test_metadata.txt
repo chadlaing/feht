@@ -1,4 +1,4 @@
-genomes	group	oryx
+genomes	group	position
 GenomeA	B	up
 GenomeB	A	up
 GenomeC	A	down
