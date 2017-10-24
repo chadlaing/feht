@@ -52,12 +52,12 @@ feht = UserInput
       <> help "File of binary or single-nucleotide variant data")
   <*> strOption
       (long "one"
-      <> metavar "Group1Name Group1Item Group1Item Group1Item"
+      <> metavar "\"Group1Name Group1Item Group1Item Group1Item\""
       <> value "all all"
       <> help "Group1 column name, followed by optional Group1 labels to include as part of the group")
   <*> strOption
       (long "two"
-      <> metavar "Group2Name Group2Item Group2Item Group2Item"
+      <> metavar "\"Group2Name Group2Item Group2Item Group2Item\""
       <> value "all all"
       <> help "Group2 column name, followed by optional Group2 labels to include as part of the group")
   <*> option auto
@@ -82,7 +82,7 @@ feht = UserInput
   <*> option auto
       (long "ratioFilter"
       <> short 'f'
-      <> metavar "[Filter results by ratio (0.00-1.0), DEFAULT=0]"
+      <> metavar "[Filter results by ratio (0.00-1.00), DEFAULT=0]"
       <> value 0
       <> help "Display only those results greater than or equal to the value"
       )
