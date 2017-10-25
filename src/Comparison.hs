@@ -125,7 +125,6 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
           else rt
 
 
-
 -- |Entry function to sort the results into a table format for printing.
 formatComparisonResultsAsTable :: Double
                                -> ComparisonResultMap
