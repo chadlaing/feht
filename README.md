@@ -44,7 +44,7 @@ If you are on Windows and prefer a GUI, check out [GenomeFisher](https://bitbuck
 
 The program takes command line arguments, of which 2 are required: `-i`, which specifies  the information (eg. metadata) file, and `-d`, which specifies the data file. Both of these files need to be delimited with the same delimiter, eg. tab (`\t`, which is the default).
 
-The information file should be formatted with sample names in the first column, which does not require a header; sample names need to be identical in both the information and data files. All other columns require a header, and this header will be used as a metadata category, and all subsequent rows will be interpreted as values within that category. For example, the `data/test_metadata.txt` file included in this repository is as follows:
+The information file should be formatted with sample names in the first column, which does not require a header; sample names need to be identical in both the information and data files. All other columns require a header, and this header will be used as a metadata category; all subsequent rows will be interpreted as values within that category. For example, the `data/test_metadata.txt` file included in this repository is as follows:
 
     genomes	group	position
     GenomeA	B	up
@@ -75,7 +75,7 @@ In the data file, the sample names are the column headers, and must exactly matc
 ### Performing comparisons
 
 #### All possible pairwise comparisons
-`feht` by default will perform all possible pairwise comparisons given the categories in the information file. In our example using the `data/test_metadata.txt` file, a separate comparison withing the `group` category of (`A vs. B`, `A vs. C`, `A vs (B and C)`,`B vs. C`, `B vs. (A and C)`, `C vs. (A and B)`) will be performed, and likewise withing the `position` category. With our test data, these comparisons can be run with:
+`feht` by default will perform all possible pairwise comparisons given the categories in the information file. In our example using the `data/test_metadata.txt` file, a separate comparison within the `group` category of (`A vs. B`, `A vs. C`, `A vs (B and C)`,`B vs. C`, `B vs. (A and C)`, `C vs. (A and B)`) will be performed, and likewise within the `position` category. With our test data, these comparisons can be run with:
 
     feht -i data/test_metadata.txt -d data/test_binary.txt
     
@@ -114,7 +114,7 @@ And will produce an output file sorted from "most" to "least" discriminatory dat
 
 Each output block lists the categories that are being compared, and the values within the category that constitute the group. For example, the first output block above is a comparison between `B` and `C` within the `group` category. The output consists of seven columns, the first being the data label that was compared, and the next four showing the presence and absence of that particular datum among the two groups. In the first example above, for the datum `binary21`, `GroupOne` (which is `B` from the category `group`) contained four members that were positive for `binary21` and 0 that were negative. For `GroupTwo` (which is `C` from the category `group`) there were no members that were positive for `binary21` and two members that were negative. 
 
-The next column is the P-value, which shows by default the `bonferonni` corrected value. In this example, due to the small sample size and number of comparisons, the corrected value is not significant (eg. `1.0`). 
+The next column is the P-value, which shows by default the `bonferroni` corrected value. In this example, due to the small sample size and number of comparisons, the corrected value is not significant (eg. `1.0`). 
 
 The final column contains the ratio of the fraction of `GroupOne` positive minus the fraction of `GroupTwo` positive. In our example for `binary21` this is (4/4 - 0/2), which gives the result of `1.0`. The ratio provides an additional method for identifying data that are skewed between the groups under comparison. A value of `1.0` means that all of `GroupOne` was positive for the datum and all of `GroupTwo` was negative; conversely a ratio of `-1.0` means that all of `GroupOne` was negative, and all of `GroupTwo` was positive.
 

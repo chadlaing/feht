@@ -125,7 +125,6 @@ countCharInVectorByIndices v matchChar = foldl' aFun 0
           else rt
 
 
-
 -- |Entry function to sort the results into a table format for printing.
 formatComparisonResultsAsTable :: Double
                                -> ComparisonResultMap
@@ -149,8 +148,9 @@ formatComparisonResult d xs c cr
     cr' = filter (\z -> d <= (abs . compRatio $ z)) cr
     x = BS.concat["[#-\n", comparisonHeader, BS.concat comparisonValues, "-#]\n"]
     comparisonHeader =
-      BS.intercalate "---\n" [compDetails c
-                             ,columnHeader]
+      BS.concat [compDetails c
+                , "---\n"
+                ,columnHeader]
     columnHeader ="Name\tGroupOne (+)\tGroupOne (-)\tGroupTwo (+)\tGroupTwo (-)\tpValue\tRatio\n"
     comparisonValues = foldl' formatSingleResult [] (sortComparisonResultByRatio cr')
 -- |Custom sorting function for [ComparisonResult] by abs(ratio).
