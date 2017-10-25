@@ -1,5 +1,6 @@
 # **_feht_**
 ## pronounced "fate", as the "eh" is Canadian
+[![Master branch build status](https://travis-ci.org/chadlaing/feht.svg?branch=master "Master Build Status")](https://travis-ci.org/chadlaing/feht)
 
 A commandline program to automatically identify markers predictive of groups. Can be used with binary data, genomic (single nucleotide variant) data, or arbitrary character data.
 
@@ -39,6 +40,28 @@ If you are on Windows and prefer a GUI, check out [GenomeFisher](https://bitbuck
                            Display only those results greater than or equal to
                            the value
     -h,--help              Show this help text
+
+
+### Installation
+`feht` is written in Haskell and is most easily built using the [Haskell Tool Stack](https://docs.haskellstack.org/en/stable/README/).
+
+Taken from the Stack documentation above, Stack can be installed on a Unix-like system by running:
+
+    wget -qO- https://get.haskellstack.org/ | sh
+    
+Following the installation of Stack, `feht` can be built and tested by running in the project root directory:
+
+    stack test 
+    
+All tests should pass, following which:
+
+    stack install 
+    
+Will copy the compiled executable to your local `bin/` path.
+
+Compiled binaries of `feht` for Linux and Windows can be found here: [binaries](https://github.com/chadlaing/feht/releases)
+
+
 
 ### File format 
 
