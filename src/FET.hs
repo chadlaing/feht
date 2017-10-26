@@ -9,7 +9,7 @@ import           Data.List
 import           Data.Ord
 import           Prelude                                (Double, fromIntegral,
                                                          (*), (+), (-), (/),
-                                                         (^), otherwise)
+                                                         (^), otherwise, (&&))
 import           Statistics.Distribution                (complCumulative,
                                                          cumulative,
                                                          probability)
@@ -96,7 +96,7 @@ fet :: FETName
     -> FETMode
     -> FETResult
 fet (FETName fName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) mode 
-  | and[k /= 0, (gta + gtb /= 0)] =
+  | l > 0 && goa >= 0 && gob >= 0 && gta >= 0 && gtb >= 0 =
     case mode of
         OneTail -> theResult{pvalue = cumD}
         TwoTail -> theResult{pvalue = twoTailValue}
