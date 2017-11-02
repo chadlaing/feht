@@ -71,7 +71,7 @@ getListOfColumns t = foldl' getColumn [] (M.keys t)
 calculateRatio :: FETResult
                -> Double
 calculateRatio fetr
-  | (go /= 0) && (gt /=0) = (goa / (goa + gob)) - (gta / (gta + gtb))
+  | (go > 0) && (gt > 0) && goa >= 0 && gob >= 0 && gta >= 0 && gtb >= 0 = (goa / go) - (gta / gt)
   | otherwise = 0
   where
     go = goa + gob

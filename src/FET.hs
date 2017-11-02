@@ -96,7 +96,7 @@ fet :: FETName
     -> FETMode
     -> FETResult
 fet (FETName fName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB gtb) mode 
-  | l > 0 && goa >= 0 && gob >= 0 && gta >= 0 && gtb >= 0 =
+  | l > 0 && goa >= 0 && gob >= 0 && gta >= 0 && gtb >= 0 && k > 0 && gt > 0 =
     case mode of
         OneTail -> theResult{pvalue = cumD}
         TwoTail -> theResult{pvalue = twoTailValue}
@@ -115,6 +115,7 @@ fet (FETName fName) (GroupOneA goa) (GroupOneB gob) (GroupTwoA gta) (GroupTwoB g
     m = goa + gta
     l = m + gob + gtb
     k = goa + gob
+    gt = gta + gtb
     theResult = FETResult{groupOneA = goa
                          ,groupOneB = gob
                          ,groupTwoA = gta
