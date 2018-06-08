@@ -61,6 +61,11 @@ Will copy the compiled executable to your local `bin/` path.
 
 Compiled binaries of `feht` for Linux and Windows can be found here: [binaries](https://github.com/chadlaing/feht/releases)
 
+#### Bioconda
+Installation also possible from Bioconda
+
+```conda install -c bioconda feht```
+
 
 
 ### File format 
